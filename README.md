@@ -1,10 +1,12 @@
 # 🔭 CosmosGenie
 
 <p align="center">
-  <img src="https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e001738/GSFC_20171208_Archive_e001738~large.jpg"
-       alt="Orion Constellation — NASA" width="720"/>
+  <img
+    src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Webb%27s_First_Deep_Field_%28adjusted%29.jpg/1024px-Webb%27s_First_Deep_Field_%28adjusted%29.jpg"
+    alt="JWST First Deep Field" width="720"
+  />
   <br/>
-  <sub><i>🔭 NASA Image Archive · GSFC · Public Domain</i></sub>
+  <sub><i>🔭 James Webb Space Telescope — First Deep Field · NASA / ESA / CSA · Public Domain</i></sub>
 </p>
 
 > Your universe, answered. A Genie-powered astronomy assistant built on Databricks with real NASA data.
