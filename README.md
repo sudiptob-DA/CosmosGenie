@@ -1,5 +1,12 @@
 # 🔭 CosmosGenie
 
+<p align="center">
+  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/57/Orion_IAU.svg/900px-Orion_IAU.svg.png"
+       alt="Orion Constellation" width="680"/>
+  <br/>
+  <sub><i>Orion — one of the constellations tracked by CosmosGenie · IAU / Creative Commons</i></sub>
+</p>
+
 > Your universe, answered. A Genie-powered astronomy assistant built on Databricks with real NASA data.
 
 Built for the **Databricks Genie-Powered App Challenge 2026** — Track B: Creative Thinking.
