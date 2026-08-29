@@ -1,10 +1,10 @@
 # 🔭 CosmosGenie
 
 <p align="center">
-  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Orion_Nebula_-_Hubble_2006_mosaic_18000.jpg/1024px-Orion_Nebula_-_Hubble_2006_mosaic_18000.jpg"
-       alt="Orion Nebula — Hubble Space Telescope" width="720"/>
+  <img src="https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e001738/GSFC_20171208_Archive_e001738~large.jpg"
+       alt="Orion Constellation — NASA" width="720"/>
   <br/>
-  <sub><i>🔭 The Orion Nebula (M42) captured by the Hubble Space Telescope · NASA / ESA / Public Domain</i></sub>
+  <sub><i>🔭 NASA Image Archive · GSFC · Public Domain</i></sub>
 </p>
 
 > Your universe, answered. A Genie-powered astronomy assistant built on Databricks with real NASA data.
