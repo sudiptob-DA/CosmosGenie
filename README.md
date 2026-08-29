@@ -129,6 +129,57 @@ CosmosGenie/
 5. Create a Genie Space with all 8 tables — copy the Space ID into `app.yaml`
 6. Deploy the app from the `cosmosgenie/` folder
 
+
+## Creating the Genie Space
+
+The Genie Space is the brain of CosmosGenie — it translates natural language questions
+into SQL over your 8 Delta tables.
+
+### Steps
+
+1. In your Databricks workspace, go to **left nav → Genie → New Genie Space**
+2. Name it `CosmosGenie`
+3. Under **Tables**, add all 8 tables from `cosmos.space`:
+   - `neo_close_approaches`, `space_weather_events`, `moon_phases`
+   - `eclipse_catalog`, `eclipse_paths`, `planetary_events`
+   - `mission_launches`, `space_news`
+
+4. Under **Instructions**, paste the following:
+
+```
+- Asteroid distances: always contextualize in lunar distances (1 LD = 0.00257 AU)
+- Blood Moon = eclipse_type = 'Total' AND body = 'Lunar'
+- Potentially hazardous asteroids = is_potentially_hazardous = true
+- Geomagnetic storm scale: G1 (minor) to G5 (extreme); class_type stores the G-scale
+- is_crewed = true means humans are aboard; is_moon_mission = true means it targets the Moon
+- For eclipse travel queries: rank cities by sky_clarity_pct DESC, mention totality duration
+- Use plain, friendly language; avoid jargon unless asked
+- Never recommend travel to a location without mentioning the sky_clarity_pct risk
+```
+
+5. Add a few **sample questions** to help Genie learn your intent:
+   - "Are any asteroids approaching Earth in the next 7 days?"
+   - "When is the next blood moon and how long does totality last?"
+   - "Where should I fly to see the 2027 total solar eclipse?"
+   - "What solar flares occurred this month and how strong were they?"
+   - "Is Artemis 2 still on schedule for launch?"
+   - "What planetary conjunctions are coming up in the next 6 months?"
+   - "Which city has the best chance of clear skies for the 2028 eclipse?"
+   - "How many potentially hazardous asteroids are currently being tracked?"
+
+6. Click **Save**, then copy the **Space ID** from the browser URL
+   - Format: `01xxxxxxxxxxxxxxxx` (e.g. `01ef8a3c2d1b4f9e`)
+
+7. Paste it into `cosmosgenie/app.yaml`:
+   ```yaml
+   env:
+     - name: GENIE_SPACE_ID
+       value: "YOUR_SPACE_ID_HERE"   # ← paste here
+   ```
+
+> **Tip:** Test the space directly in the Genie UI before deploying the app.
+> Ask it a few questions from the list above to confirm it's querying the right tables.
+
 ## Personal Story
 
 Built for my son who asked me one evening if any asteroids were going to hit Earth.
