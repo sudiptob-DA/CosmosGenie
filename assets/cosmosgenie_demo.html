@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CosmosGenie — Your Universe, Answered</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Segoe UI',-apple-system,sans-serif; background:radial-gradient(ellipse at 20% 50%,#0e0826 0%,#060d1c 45%,#020810 100%); color:#e8f0fe; height:100vh; display:flex; flex-direction:column; overflow:hidden; }
+#starfield { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:0; }
+.header { display:flex; align-items:center; padding:14px 24px; background:rgba(5,13,26,0.85); border-bottom:1px solid rgba(100,149,237,0.18); backdrop-filter:blur(12px); z-index:10; gap:10px; }
+.logo { font-size:22px; font-weight:800; background:linear-gradient(135deg,#6495ed,#b19cd9,#ff9500); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.logo-icon { font-size:26px; }
+.genie-badge { font-size:11px; color:#6495ed; background:rgba(100,149,237,0.12); border:1px solid rgba(100,149,237,0.28); padding:3px 10px; border-radius:20px; }
+.db-badge { margin-left:auto; display:flex; align-items:center; gap:6px; font-size:11px; color:#4a5e8a; }
+.live-dot { width:7px; height:7px; background:#6bcb77; border-radius:50%; animation:pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+.main { display:flex; flex:1; overflow:hidden; position:relative; z-index:5; }
+.sidebar { width:260px; background:rgba(8,18,38,0.75); border-right:1px solid rgba(100,149,237,0.12); padding:18px 14px; overflow-y:auto; backdrop-filter:blur(10px); flex-shrink:0; }
+.section-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1.8px; color:#4a6aaa; margin-bottom:12px; }
+.event-card { background:rgba(100,149,237,0.06); border:1px solid rgba(100,149,237,0.13); border-radius:10px; padding:11px 13px; margin-bottom:9px; cursor:pointer; transition:all 0.2s; }
+.event-card:hover { background:rgba(100,149,237,0.14); border-color:rgba(100,149,237,0.4); transform:translateX(2px); }
+.event-card.hot { border-color:rgba(255,149,0,0.35); background:rgba(255,149,0,0.06); }
+.ec-name { font-size:12px; font-weight:700; color:#d8e8ff; }
+.ec-date { font-size:11px; color:#5a7acc; margin-top:2px; }
+.ec-tag { display:inline-block; font-size:10px; font-weight:600; margin-top:5px; padding:2px 7px; border-radius:10px; }
+.ec-tag.soon { background:rgba(255,149,0,0.18); color:#ff9500; }
+.ec-tag.info { background:rgba(100,149,237,0.15); color:#6495ed; }
+.ec-tag.danger { background:rgba(255,100,100,0.15); color:#ff6b6b; }
+.ec-tag.safe { background:rgba(107,203,119,0.15); color:#6bcb77; }
+.ds-row { display:flex; align-items:center; gap:7px; font-size:11px; color:#3a4e78; margin-bottom:7px; }
+.ds-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+.ds-dot.live { background:#6bcb77; }
+.ds-dot.static { background:#4a6aaa; }
+.chat-wrap { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+.kpi-bar { display:flex; gap:0; border-bottom:1px solid rgba(100,149,237,0.12); background:rgba(7,16,34,0.9); backdrop-filter:blur(12px); z-index:9; flex-shrink:0; }
+.kpi-card { flex:1; padding:12px 16px; border-right:1px solid rgba(100,149,237,0.08); }
+.kpi-card:last-child { border-right:none; }
+.kpi-label { font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:1.4px; color:#3a5080; margin-bottom:5px; }
+.kpi-value { font-size:20px; font-weight:800; }
+.kpi-sub { font-size:10.5px; color:#4a6aaa; margin-top:4px; }
+.tab-bar { display:flex; gap:0; border-bottom:1px solid rgba(100,149,237,0.1); background:rgba(5,13,26,0.7); flex-shrink:0; }
+.tab-btn { padding:10px 20px; font-size:12px; font-weight:600; color:#3a5080; cursor:pointer; border-bottom:2px solid transparent; transition:all 0.2s; }
+.tab-btn:hover { color:#8aaedc; }
+.tab-btn.active { color:#6495ed; border-bottom-color:#6495ed; }
+.tab-panel { display:none; flex:1; overflow-y:auto; flex-direction:column; }
+.tab-panel.active { display:flex; }
+.quick-bar { padding:13px 18px; border-bottom:1px solid rgba(100,149,237,0.08); }
+.quick-label { font-size:10px; color:#3a4e78; text-transform:uppercase; letter-spacing:1.2px; margin-bottom:9px; }
+.chips { display:flex; flex-wrap:wrap; gap:7px; }
+.chip { font-size:12px; padding:5px 12px; background:rgba(100,149,237,0.08); border:1px solid rgba(100,149,237,0.2); border-radius:20px; color:#8aaedc; cursor:pointer; transition:all 0.2s; white-space:nowrap; }
+.chip:hover { background:rgba(100,149,237,0.18); border-color:rgba(100,149,237,0.5); color:#e0eeff; }
+.messages { flex:1; overflow-y:auto; padding:18px 20px; display:flex; flex-direction:column; gap:18px; }
+.msg { display:flex; gap:10px; max-width:88%; }
+.msg.user { align-self:flex-end; flex-direction:row-reverse; }
+.avatar { width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; }
+.avatar.bot { background:linear-gradient(135deg,#1a3a6e,#2d5aad); border:1px solid rgba(100,149,237,0.4); }
+.avatar.usr { background:rgba(255,149,0,0.18); border:1px solid rgba(255,149,0,0.35); }
+.bubble { background:rgba(12,25,52,0.85); border:1px solid rgba(100,149,237,0.16); border-radius:12px; padding:13px 15px; font-size:13.5px; line-height:1.65; backdrop-filter:blur(5px); }
+.bubble.user { background:rgba(255,149,0,0.09); border-color:rgba(255,149,0,0.2); color:#fff5e0; }
+.genie-intro { font-size:12px; color:#7090c0; margin-bottom:8px; }
+.rtable { margin-top:11px; border-radius:8px; overflow:hidden; border:1px solid rgba(100,149,237,0.18); font-size:12px; }
+.rtable table { width:100%; border-collapse:collapse; }
+.rtable th { background:rgba(100,149,237,0.14); padding:7px 11px; text-align:left; font-weight:700; color:#5a85cc; font-size:10.5px; text-transform:uppercase; }
+.rtable td { padding:7px 11px; border-top:1px solid rgba(100,149,237,0.07); color:#b8cef0; }
+.pha { color:#ff6b6b; font-weight:700; }
+.ok { color:#6bcb77; }
+.sql-chip { display:inline-flex; align-items:center; gap:4px; font-size:11px; color:#4a6aaa; background:rgba(100,149,237,0.07); border:1px solid rgba(100,149,237,0.15); border-radius:4px; padding:3px 8px; margin-top:10px; cursor:pointer; }
+.sql-chip:hover { color:#6495ed; background:rgba(100,149,237,0.14); }
+.sql-expanded { display:none; margin-top:6px; padding:8px 10px; background:rgba(0,0,0,0.3); border-radius:6px; font-size:11px; font-family:monospace; color:#6495ed; word-break:break-all; }
+.insight { margin-top:10px; padding:9px 12px; background:rgba(100,149,237,0.06); border-left:2px solid #6495ed; border-radius:0 6px 6px 0; font-size:12.5px; color:#a0bce0; line-height:1.5; }
+.input-area { padding:14px 18px; border-top:1px solid rgba(100,149,237,0.08); background:rgba(5,13,26,0.6); backdrop-filter:blur(10px); }
+.input-wrap { display:flex; gap:9px; background:rgba(12,25,52,0.8); border:1px solid rgba(100,149,237,0.22); border-radius:12px; padding:9px 13px; align-items:center; }
+.input-wrap:focus-within { border-color:rgba(100,149,237,0.55); box-shadow:0 0 0 3px rgba(100,149,237,0.07); }
+input[type=text] { flex:1; background:transparent; border:none; outline:none; color:#e8f0fe; font-size:13.5px; }
+input::placeholder { color:#2e4068; }
+.send-btn { background:linear-gradient(135deg,#1e4090,#4a7ae0); border:none; border-radius:8px; width:30px; height:30px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#fff; font-size:13px; transition:all 0.2s; flex-shrink:0; }
+.send-btn:hover { transform:scale(1.08); filter:brightness(1.15); }
+.sky-dashboard { flex:1; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:16px; }
+.dash-row { display:flex; gap:16px; }
+.dash-card { background:rgba(10,22,46,0.8); border:1px solid rgba(100,149,237,0.14); border-radius:12px; padding:16px; flex:1; }
+.dash-card-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1.2px; color:#4a6aaa; margin-bottom:14px; }
+.dash-embed-note { font-size:11px; color:#2e4068; margin-top:8px; font-style:italic; }
+.moon-ring { width:80px; height:80px; border-radius:50%; background:radial-gradient(circle at 62% 38%,#e8e0c8 0%,#c8b890 40%,#1a1a2e 100%); box-shadow:inset -12px -8px 0 rgba(5,13,26,0.85),0 0 20px rgba(200,180,140,0.2); margin:0 auto 10px; }
+.moon-label { text-align:center; font-size:13px; font-weight:700; color:#d8c890; }
+.moon-pct { text-align:center; font-size:11px; color:#7a6a40; margin-top:3px; }
+.gauge-wrap { display:flex; flex-direction:column; align-items:center; }
+.gauge-svg { width:120px; height:70px; }
+.timeline { display:flex; flex-direction:column; gap:8px; }
+.tl-row { display:flex; align-items:center; gap:10px; }
+.tl-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.tl-line { flex:1; height:1px; background:rgba(100,149,237,0.1); }
+.tl-date { font-size:10px; color:#4a6aaa; white-space:nowrap; }
+.tl-name { font-size:12px; color:#b8cef0; }
+/* FIX 2: CSS ticker (replaces marquee) */
+.ticker-wrap { overflow:hidden; width:100%; }
+.ticker-content { display:inline-block; white-space:nowrap; animation:tickscroll 45s linear infinite; padding-left:100%; }
+.ticker-content:hover { animation-play-state:paused; }
+@keyframes tickscroll { 0%{transform:translateX(0);} 100%{transform:translateX(-100%);} }
+/* FIX 3: Ask Genie pill */
+.ask-pill { font-size:10px; color:#6495ed; text-decoration:none; border:1px solid rgba(100,149,237,0.25); border-radius:12px; padding:3px 9px; margin-top:8px; display:inline-block; transition:all .2s; }
+.ask-pill:hover { background:rgba(100,149,237,0.12); border-color:rgba(100,149,237,0.5); }
+/* FIX 4: Prototype watermark */
+.proto-badge { position:fixed; bottom:8px; left:50%; transform:translateX(-50%); z-index:100; font-size:9px; color:rgba(100,149,237,0.5); background:rgba(5,13,26,0.85); border:1px solid rgba(100,149,237,0.15); border-radius:10px; padding:3px 12px; pointer-events:none; }
+::-webkit-scrollbar { width:3px; }
+::-webkit-scrollbar-thumb { background:rgba(100,149,237,0.25); border-radius:2px; }
+
+/* Genie Reasoning Chain */
+.reasoning { margin-bottom:10px; }
+.r-step { display:flex; align-items:flex-start; gap:8px; padding:4px 0; font-size:12px; opacity:0; transition:opacity .45s ease; }
+.r-step.show { opacity:1; }
+.r-icon { width:18px; height:18px; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:11px; flex-shrink:0; margin-top:1px; }
+.r-icon.active { background:rgba(100,149,237,0.15); }
+.r-icon.done   { background:rgba(107,203,119,0.12); }
+.r-text { color:#6070a0; line-height:1.5; flex:1; }
+.r-text b { color:#a8c0f0; font-weight:600; }
+.r-text code { font-family:monospace; font-size:10.5px; color:#6495ed; background:rgba(100,149,237,0.09); padding:1px 5px; border-radius:3px; }
+.r-sql-toggle { font-size:10px; color:#3a5080; border:1px solid rgba(100,149,237,0.2); border-radius:3px; padding:1px 6px; margin-left:6px; cursor:pointer; transition:all .2s; }
+.r-sql-toggle:hover { color:#6495ed; border-color:rgba(100,149,237,0.4); }
+.r-sql-block { display:none; margin-top:6px; padding:10px 12px; background:rgba(0,0,0,0.4); border-radius:7px; border-left:2px solid rgba(100,149,237,0.5); font-family:monospace; font-size:11px; color:#6495ed; white-space:pre; overflow-x:auto; line-height:1.65; }
+.r-divider { border:none; border-top:1px solid rgba(100,149,237,0.08); margin:8px 0; }
+@keyframes rspin { to { transform:rotate(360deg); } }
+.rspin { display:inline-block; animation:rspin .9s linear infinite; }
+
+/* Kid Mode toggle */
+.kid-toggle { display:flex; align-items:center; gap:6px; margin-right:12px; }
+.kid-toggle input[type=checkbox] { width:16px; height:16px; accent-color:#ff9500; cursor:pointer; }
+.kid-toggle label { font-size:11px; color:#6a8abc; cursor:pointer; white-space:nowrap; user-select:none; }
+.kid-toggle label:hover { color:#a8c0f0; }
+.kid-badge { display:inline-block; font-size:9px; background:rgba(255,149,0,0.15); color:#ff9500;
+             border:1px solid rgba(255,149,0,0.3); border-radius:10px; padding:1px 7px; margin-left:6px;
+             font-weight:600; vertical-align:middle; }
+
+/* Easter Egg: Rocket Launch */
+.rocket-overlay { position:fixed; inset:0; z-index:9999; pointer-events:none; display:none; }
+.rocket-overlay.active { display:block; }
+.rocket-ship { position:absolute; bottom:-120px; left:50%; transform:translateX(-50%);
+  font-size:72px; animation:rocketRise 2.8s cubic-bezier(.15,.8,.3,1) forwards; }
+@keyframes rocketRise {
+  0%   { bottom:-120px; transform:translateX(-50%) rotate(0deg); }
+  10%  { bottom:0; transform:translateX(-50%) rotate(-2deg); }
+  30%  { bottom:25%; transform:translateX(-48%) rotate(1deg); }
+  60%  { bottom:55%; transform:translateX(-51%) rotate(-1deg); }
+  100% { bottom:110%; transform:translateX(-50%) rotate(0deg); }
+}
+.exhaust { position:absolute; left:50%; bottom:-80px; transform:translateX(-50%);
+  width:4px; height:60px; background:linear-gradient(to top,transparent,#ff9500,#ff6b6b,#fff);
+  border-radius:2px; filter:blur(3px); animation:rocketRise 2.8s cubic-bezier(.15,.8,.3,1) forwards,
+  exhaustFlicker .1s infinite alternate; }
+@keyframes exhaustFlicker { 0%{opacity:.7;width:4px;} 100%{opacity:1;width:7px;} }
+.exhaust-wide { width:12px; height:90px; filter:blur(8px); opacity:.5;
+  background:linear-gradient(to top,transparent,rgba(255,149,0,.6),rgba(255,100,100,.3)); }
+.launch-text { position:absolute; top:35%; left:50%; transform:translate(-50%,-50%);
+  font-size:42px; font-weight:900; letter-spacing:6px; color:#fff;
+  text-shadow:0 0 30px rgba(255,149,0,.8),0 0 60px rgba(255,100,100,.4);
+  opacity:0; animation:launchTextPop .6s .3s forwards; }
+@keyframes launchTextPop { 0%{opacity:0;transform:translate(-50%,-50%) scale(.5);} 
+  50%{opacity:1;transform:translate(-50%,-50%) scale(1.15);}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(1.3);} }
+.spark { position:absolute; width:3px; height:3px; border-radius:50%;
+  background:#ff9500; animation:sparkFly 1.5s forwards; }
+@keyframes sparkFly {
+  0%   { opacity:1; transform:translate(0,0) scale(1); }
+  100% { opacity:0; transform:translate(var(--sx),var(--sy)) scale(0); }
+}
+.screen-flash { position:fixed; inset:0; background:rgba(255,200,100,.15);
+  animation:flashFade .4s forwards; pointer-events:none; z-index:9998; }
+@keyframes flashFade { 0%{opacity:1;} 100%{opacity:0;} }
+@keyframes screenShake {
+  0%,100% { transform:translate(0); }
+  10% { transform:translate(-2px,1px); }
+  30% { transform:translate(2px,-1px); }
+  50% { transform:translate(-1px,2px); }
+  70% { transform:translate(1px,-2px); }
+  90% { transform:translate(-2px,0); }
+}
+.shaking { animation:screenShake .5s; }
+</style>
+</head>
+<body>
+<canvas id="starfield"></canvas>
+
+<div class="header">
+  <span class="logo-icon">🔭</span>
+  <span class="logo">CosmosGenie</span>
+  <span class="genie-badge">✨ Powered by Genie Agent</span>
+  <div class="db-badge"><div class="live-dot"></div>Databricks App · Free Edition</div>
+</div>
+
+<!-- KPI Bar -->
+<div class="kpi-bar">
+  <div class="kpi-card"><div class="kpi-label">☄️ Asteroids This Week</div><div class="kpi-value" style="color:#ff9500">3</div><div class="kpi-sub">close approaches</div></div>
+  <div class="kpi-card"><div class="kpi-label">⚠️ Potentially Hazardous</div><div class="kpi-value" style="color:#ff6b6b">1</div><div class="kpi-sub">flagged by NASA</div></div>
+  <div class="kpi-card"><div class="kpi-label">🌙 Moon Phase</div><div class="kpi-value" style="color:#b19cd9">78%</div><div class="kpi-sub">Waxing Gibbous</div></div>
+  <div class="kpi-card"><div class="kpi-label">☀️ Space Weather</div><div class="kpi-value" style="color:#ff6b6b">G2</div><div class="kpi-sub">Geomagnetic Storm Active</div></div>
+  <div class="kpi-card"><div class="kpi-label">🌑 Next Eclipse</div><div class="kpi-value" style="color:#6495ed">187</div><div class="kpi-sub">days · Blood Moon Mar 3</div></div>
+  <div class="kpi-card"><div class="kpi-label">🪐 Next Alignment</div><div class="kpi-value" style="color:#6bcb77">62</div><div class="kpi-sub">days · Jupiter–Mars Oct 29</div></div>
+</div>
+
+<div class="main">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="section-label">🌌 Upcoming Events</div>
+    <div class="event-card hot" onclick="ask('When is the next total solar eclipse?')"><div class="ec-name">🌑 Total Solar Eclipse</div><div class="ec-date">Aug 2, 2027 · N Africa → Egypt</div><div class="ec-tag info">6m 23s totality — longest of the century</div></div>
+    <div class="event-card" onclick="ask('When is the next blood moon?')"><div class="ec-name">🔴 Blood Moon</div><div class="ec-date">Mar 3, 2026 · Americas + Europe</div><div class="ec-tag soon">in ~7 months</div></div>
+    <div class="event-card hot" onclick="ask('Any hazardous asteroids approaching Earth?')"><div class="ec-name">☄️ Asteroid 2024 YR4 Flyby</div><div class="ec-date">Sep 22, 2026 · 0.044 AU</div><div class="ec-tag danger">⚠ Potentially Hazardous</div></div>
+    <div class="event-card" onclick="ask('What planetary alignments are coming?')"><div class="ec-name">🪐 Jupiter–Mars Conjunction</div><div class="ec-date">Oct 29, 2026 · 0.3° apart</div><div class="ec-tag info">In 62 days</div></div>
+    <div class="event-card" onclick="ask('Tell me about the Perseid meteor shower')"><div class="ec-name">🌠 Perseid Meteor Shower</div><div class="ec-date">Aug 12, 2026 · ~100/hr</div><div class="ec-tag safe">Great viewing</div></div>
+    <div class="event-card" onclick="ask('Is Artemis 2 on schedule?')"><div class="ec-name">🚀 Artemis II Lunar Flyby</div><div class="ec-date">Sep 2026 · NASA Crewed</div><div class="ec-tag info">Go for launch</div></div>
+    <div style="margin-top:16px;"><div class="section-label">📡 Data Sources</div>
+      <div class="ds-row"><div class="ds-dot live"></div>NASA NeoWs (Asteroids)</div>
+      <div class="ds-row"><div class="ds-dot live"></div>NASA DONKI (Space Weather)</div>
+      <div class="ds-row"><div class="ds-dot live"></div>USNO Moon Phases</div>
+      <div class="ds-row"><div class="ds-dot live"></div>The Space Devs (Launches)</div>
+      <div class="ds-row"><div class="ds-dot static"></div>NASA Eclipse Catalog</div>
+    </div>
+  </div>
+
+  <!-- Chat area -->
+  <div class="chat-wrap">
+    <div class="tab-bar">
+      <div class="tab-btn active" onclick="switchTab('ask',this)">🔭 Ask CosmosGenie</div>
+      <div class="tab-btn" onclick="switchTab('sky',this)">📊 Tonight's Sky</div>
+      <div class="tab-btn" onclick="switchTab('mission',this)">🚀 Mission Control</div>
+    </div>
+
+    <!-- TAB: Ask CosmosGenie -->
+    <div class="tab-panel active" id="panel-ask">
+      <div class="quick-bar">
+        <div class="quick-label">Ask me anything about the cosmos</div>
+        <div class="chips">
+          <div class="chip" onclick="ask('Any asteroids approaching Earth in the next 7 days?')">☄️ Asteroids this week</div>
+          <div class="chip" onclick="ask('When is the next blood moon?')">🔴 Next blood moon</div>
+          <div class="chip" onclick="ask('Show me total solar eclipses from 2025 to 2040')">🌑 Future eclipses</div>
+          <div class="chip" onclick="ask('What planetary alignments are coming up?')">🪐 Alignments</div>
+          <div class="chip" onclick="ask('What are the strongest solar flares this month?')">☀️ Solar flares</div>
+          <div class="chip" onclick="ask('What Moon missions are launching this year?')">🚀 Moon missions</div>
+          <div class="chip" onclick="ask('Best city for the 2027 eclipse with clear skies?')">🌍 Eclipse travel</div>
+        </div>
+      </div>
+      <div class="messages" id="msgs">
+        <div class="msg"><div class="avatar bot">🔭</div><div class="bubble"><div class="genie-intro">CosmosGenie · powered by Genie Agent on Databricks</div>Hi! 🌌 I'm CosmosGenie — your astronomy intelligence assistant backed by <strong>real NASA, JPL, and USNO data</strong>. Ask me about asteroids, eclipses, blood moons, planetary alignments, space weather, meteor showers, or upcoming missions. ✨</div></div>
+        <div class="msg user"><div class="avatar usr">👦</div><div class="bubble user">Are there any dangerous asteroids coming close to Earth this month?</div></div>
+        <div class="msg"><div class="avatar bot">🔭</div><div class="bubble"><div class="genie-intro">Queried cosmos.space.neo_close_approaches — 4 results</div>I found <strong>4 asteroid close approaches</strong> in the next 30 days. One is flagged Potentially Hazardous:<div class="rtable"><table><thead><tr><th>Asteroid</th><th>Date</th><th>Miss Distance</th><th>Size</th><th>Hazardous</th></tr></thead><tbody><tr><td><strong>2024 YR4</strong></td><td>Sep 22</td><td>0.044 AU</td><td>~40–90 m</td><td><span class="pha">⚠ Yes</span></td></tr><tr><td>2023 BU</td><td>Sep 8</td><td>0.12 AU</td><td>~4–8 m</td><td><span class="ok">✓ No</span></td></tr><tr><td>2021 QM1</td><td>Sep 15</td><td>0.18 AU</td><td>~50–110 m</td><td><span class="ok">✓ No</span></td></tr><tr><td>2019 OK</td><td>Sep 28</td><td>0.22 AU</td><td>~57–130 m</td><td><span class="ok">✓ No</span></td></tr></tbody></table></div><div class="insight">🟡 <strong>2024 YR4</strong> is flagged Potentially Hazardous but at 0.044 AU it’s <em>17× farther than the Moon</em> — zero impact risk. Visible with a telescope Sep 22!</div><div class="sql-chip" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'">&lt;/&gt; View SQL generated by Genie</div><div class="sql-expanded">SELECT name, approach_date, miss_distance_au, diameter_min_m, diameter_max_m, is_potentially_hazardous FROM cosmos.space.neo_close_approaches WHERE approach_date BETWEEN CURRENT_DATE AND CURRENT_DATE + 30 ORDER BY approach_date</div></div></div>
+        <div class="msg user"><div class="avatar usr">👦</div><div class="bubble user">When was the last blood moon and when’s the next one?</div></div>
+        <div class="msg"><div class="avatar bot">🔭</div><div class="bubble"><div class="genie-intro">Queried cosmos.space.eclipse_catalog — filtered body='Lunar' AND eclipse_type='Total'</div>A <strong>Blood Moon</strong> is a Total Lunar Eclipse where the Moon glows deep red:<div class="rtable"><table><thead><tr><th>Event</th><th>Date</th><th>Duration</th><th>Visible From</th></tr></thead><tbody><tr><td>🔴 Last</td><td>Nov 8, 2022</td><td>1h 25m</td><td>Asia, Americas</td></tr><tr><td>🔴 <strong>Next</strong></td><td><strong>Mar 3, 2026</strong></td><td>1h 17m</td><td>Americas, Europe, W Africa</td></tr><tr><td>🔴 Following</td><td>Jun 26, 2029</td><td>1h 41m</td><td>Global</td></tr></tbody></table></div><div class="insight">🔴 The next blood moon is <strong>~7 months away</strong>. Peak at 11:58 PM EST. Perfect for photos!</div><div class="sql-chip" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'">&lt;/&gt; View SQL generated by Genie</div><div class="sql-expanded">SELECT eclipse_date, duration_minutes, path_description FROM cosmos.space.eclipse_catalog WHERE body = 'Lunar' AND eclipse_type = 'Total' AND eclipse_date >= '2022-01-01' ORDER BY eclipse_date LIMIT 3</div></div></div>
+      </div>
+    </div>
+
+    <!-- TAB: Tonight's Sky Dashboard -->
+    <div class="tab-panel" id="panel-sky">
+      <div class="sky-dashboard">
+        <div class="dash-row">
+          <div class="dash-card" style="max-width:160px;flex:0 0 160px;">
+            <div class="dash-card-title">🌙 Moon Phase</div>
+            <div class="moon-ring"></div>
+            <div class="moon-label">Waxing Gibbous</div>
+            <div class="moon-pct">78% illuminated</div>
+            <div style="margin-top:8px;font-size:11px;color:#3a5080;">Full Moon: Sep 17</div>
+            <a href="#" class="ask-pill" onclick="switchTab('ask',document.querySelector('.tab-btn'));ask('What moon phase is it tonight and when is the next full moon?')">🔭 Ask Genie</a>
+          </div>
+          <div class="dash-card" style="max-width:190px;flex:0 0 190px;">
+            <div class="dash-card-title">☀️ Space Weather</div>
+            <div class="gauge-wrap"><svg class="gauge-svg" viewBox="0 0 120 70"><path d="M10 65 A 50 50 0 0 1 110 65" fill="none" stroke="rgba(100,149,237,0.1)" stroke-width="10" stroke-linecap="round"/><path d="M10 65 A 50 50 0 0 1 110 65" fill="none" stroke="url(#gg)" stroke-width="10" stroke-linecap="round" stroke-dasharray="157" stroke-dashoffset="63"/><defs><linearGradient id="gg" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#6bcb77"/><stop offset="50%" stop-color="#ff9500"/><stop offset="100%" stop-color="#ff6b6b"/></linearGradient></defs><text x="60" y="60" text-anchor="middle" fill="#ff6b6b" font-size="18" font-weight="800">G2</text></svg><div style="color:#ff6b6b;font-weight:700;font-size:13px;">Moderate Storm</div><div style="font-size:10px;color:#4a6aaa;">Auroras possible &gt; 50° lat</div></div>
+            <a href="#" class="ask-pill" onclick="switchTab('ask',document.querySelector('.tab-btn'));ask('What space weather events happened this week?')">🔭 Ask Genie</a>
+          </div>
+          <div class="dash-card">
+            <div class="dash-card-title">☄️ Asteroid Approaches (30 days)</div>
+            <div style="display:flex;align-items:flex-end;gap:5px;height:80px;margin-bottom:4px;"><div style="display:flex;flex-direction:column;align-items:center;flex:1;"><div style="font-size:9px;color:#6495ed;">0.22</div><div style="background:rgba(100,149,237,0.35);border-radius:3px 3px 0 0;width:100%;height:38px;margin-top:3px;"></div><div style="font-size:9px;color:#3a5080;margin-top:3px;">Sep 28</div></div><div style="display:flex;flex-direction:column;align-items:center;flex:1;"><div style="font-size:9px;color:#6495ed;">0.18</div><div style="background:rgba(100,149,237,0.35);border-radius:3px 3px 0 0;width:100%;height:30px;margin-top:3px;"></div><div style="font-size:9px;color:#3a5080;margin-top:3px;">Sep 15</div></div><div style="display:flex;flex-direction:column;align-items:center;flex:1;"><div style="font-size:9px;color:#ff9500;">0.12</div><div style="background:rgba(255,149,0,0.35);border-radius:3px 3px 0 0;width:100%;height:20px;margin-top:3px;"></div><div style="font-size:9px;color:#3a5080;margin-top:3px;">Sep 8</div></div><div style="display:flex;flex-direction:column;align-items:center;flex:1;"><div style="font-size:9px;color:#ff6b6b;font-weight:700;">0.044⚠</div><div style="background:rgba(255,107,107,0.5);border-radius:3px 3px 0 0;width:100%;height:7px;margin-top:3px;"></div><div style="font-size:9px;color:#3a5080;margin-top:3px;">Sep 22</div></div></div>
+            <div style="font-size:10px;color:#3a5080;">AU · Shorter = closer · ⚠ = PHA</div>
+            <a href="#" class="ask-pill" onclick="switchTab('ask',document.querySelector('.tab-btn'));ask('Are any potentially hazardous asteroids approaching Earth this month?')">🔭 Ask Genie about these asteroids</a>
+          </div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-card-title">🗓 Cosmic Event Calendar — Next 12 Months</div>
+          <div class="timeline">
+            <div class="tl-row"><div class="tl-dot" style="background:#ff6b6b;"></div><div class="tl-name">🔴 Blood Moon — Total Lunar Eclipse</div><div class="tl-line"></div><div class="tl-date">Mar 3, 2026</div></div>
+            <div class="tl-row"><div class="tl-dot" style="background:#6495ed;"></div><div class="tl-name">☄️ Asteroid 2024 YR4 Flyby (0.044 AU)</div><div class="tl-line"></div><div class="tl-date">Sep 22, 2026</div></div>
+            <div class="tl-row"><div class="tl-dot" style="background:#b19cd9;"></div><div class="tl-name">🪐 Jupiter–Mars Conjunction</div><div class="tl-line"></div><div class="tl-date">Oct 29, 2026</div></div>
+            <div class="tl-row"><div class="tl-dot" style="background:#ff9500;"></div><div class="tl-name">🌠 Geminid Meteor Shower (~120/hr)</div><div class="tl-line"></div><div class="tl-date">Dec 14, 2026</div></div>
+            <div class="tl-row"><div class="tl-dot" style="background:#6bcb77;"></div><div class="tl-name">🚀 Artemis II Crewed Lunar Flyby</div><div class="tl-line"></div><div class="tl-date">Sep 2026</div></div>
+          </div>
+          <div class="dash-embed-note">Powered by Genie queries over 8 Delta tables · refreshed daily via Lakeflow Pipeline</div>
+          <a href="#" class="ask-pill" onclick="switchTab('ask',document.querySelector('.tab-btn'));ask('What are the next 5 cosmic events I should not miss?')">🔭 Ask Genie for a sky calendar</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: Mission Control -->
+    <div class="tab-panel" id="panel-mission">
+      <div class="sky-dashboard">
+        <div style="background:rgba(255,149,0,0.06);border:1px solid rgba(255,149,0,0.2);border-radius:10px;padding:12px 16px;">
+          <div style="font-size:10px;color:#ff9500;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;">⚡ Breaking Space News</div>
+          <div class="ticker-wrap">
+            <div class="ticker-content" style="font-size:12.5px;color:#a8c0f0;">
+              <a href="#" style="color:#6495ed;" onclick="switchTab('ask',document.querySelector('.tab-btn'));ask('Tell me about Artemis II mission status')">NASA confirms Artemis II crew in final training ahead of lunar flyby</a> &nbsp;►&nbsp;
+              <a href="#" style="color:#6495ed;" onclick="switchTab('ask',document.querySelector('.tab-btn'));ask('Tell me about Chandrayaan-4')">ISRO announces Chandrayaan-4 targeting lunar south pole sample return</a> &nbsp;►&nbsp;
+              <a href="#" style="color:#6495ed;" onclick="switchTab('ask',document.querySelector('.tab-btn'));ask('Latest SpaceX Starship flight test')">SpaceX Starship completes 7th flight test, lands both stages</a> &nbsp;►&nbsp;
+              <a href="#" style="color:#6495ed;" onclick="switchTab('ask',document.querySelector('.tab-btn'));ask('Tell me about ESA Hera asteroid mission')">ESA Hera en route to Dimorphos for planetary defense assessment</a>
+            </div>
+          </div>
+          <div style="font-size:10px;color:#3a5080;margin-top:8px;">Live from Spaceflight News API · Click any headline to ask Genie for details</div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-card-title">🚀 Upcoming Launches</div>
+          <div style="border-radius:8px;overflow:hidden;border:1px solid rgba(100,149,237,0.14);"><table style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr style="background:rgba(100,149,237,0.12);"><th style="padding:7px 11px;text-align:left;color:#4a6aaa;font-size:10px;text-transform:uppercase;">Date</th><th style="padding:7px 11px;text-align:left;color:#4a6aaa;font-size:10px;text-transform:uppercase;">Mission</th><th style="padding:7px 11px;text-align:left;color:#4a6aaa;font-size:10px;text-transform:uppercase;">Agency</th><th style="padding:7px 11px;text-align:left;color:#4a6aaa;font-size:10px;text-transform:uppercase;">Rocket</th><th style="padding:7px 11px;text-align:left;color:#4a6aaa;font-size:10px;text-transform:uppercase;">Status</th></tr></thead><tbody style="background:rgba(10,22,46,0.8);"><tr><td style="padding:7px 11px;color:#7090c0;">Sep 15</td><td style="padding:7px 11px;color:#d0e0ff;font-weight:700;">Artemis II 🌕 👨‍🚀</td><td style="padding:7px 11px;color:#8aaedc;">NASA</td><td style="padding:7px 11px;color:#5a7acc;">SLS</td><td style="padding:7px 11px;"><span style="color:#6bcb77;font-weight:700;">Go</span></td></tr><tr><td style="padding:7px 11px;color:#7090c0;">Oct 2</td><td style="padding:7px 11px;color:#d0e0ff;font-weight:700;">Chandrayaan-4 🌕</td><td style="padding:7px 11px;color:#8aaedc;">ISRO</td><td style="padding:7px 11px;color:#5a7acc;">LVM3</td><td style="padding:7px 11px;"><span style="color:#6bcb77;font-weight:700;">Go</span></td></tr><tr><td style="padding:7px 11px;color:#7090c0;">Oct 18</td><td style="padding:7px 11px;color:#d0e0ff;font-weight:700;">Starlink 12-4</td><td style="padding:7px 11px;color:#8aaedc;">SpaceX</td><td style="padding:7px 11px;color:#5a7acc;">Falcon 9</td><td style="padding:7px 11px;"><span style="color:#6bcb77;font-weight:700;">Go</span></td></tr><tr><td style="padding:7px 11px;color:#7090c0;">Nov 5</td><td style="padding:7px 11px;color:#d0e0ff;font-weight:700;">MMX (Phobos) 🌕</td><td style="padding:7px 11px;color:#8aaedc;">JAXA</td><td style="padding:7px 11px;color:#5a7acc;">H3</td><td style="padding:7px 11px;"><span style="color:#ff9500;font-weight:700;">TBD</span></td></tr><tr><td style="padding:7px 11px;color:#7090c0;">Nov 20</td><td style="padding:7px 11px;color:#d0e0ff;font-weight:700;">Crew Dragon 10 👨‍🚀</td><td style="padding:7px 11px;color:#8aaedc;">SpaceX/NASA</td><td style="padding:7px 11px;color:#5a7acc;">Falcon 9</td><td style="padding:7px 11px;"><span style="color:#6bcb77;font-weight:700;">Go</span></td></tr></tbody></table></div>
+          <div style="font-size:10px;color:#2e4068;margin-top:8px;font-style:italic;">🌕 = Moon mission &nbsp; 👨‍🚀 = Crewed &nbsp;·&nbsp; Data: The Space Devs</div>
+          <a href="#" class="ask-pill" onclick="switchTab('ask',document.querySelector('.tab-btn'));ask('What crewed missions and Moon missions are launching this year?')">🔭 Ask Genie about upcoming missions</a>
+        </div>
+        <div class="dash-card">
+          <div class="dash-card-title">🌍 Eclipse Travel Planner — Top Cities by Totality + Sky Clarity</div>
+          <div style="display:flex;gap:16px;"><div style="flex:1;"><div style="font-size:11px;color:#6495ed;font-weight:700;margin-bottom:8px;">2027 Eclipse — Aug 2</div><div class="rtable"><table style="width:100%;"><thead><tr><th style="padding:5px 8px;font-size:10px;color:#4a6aaa;background:rgba(100,149,237,0.12);">City</th><th style="padding:5px 8px;font-size:10px;color:#4a6aaa;background:rgba(100,149,237,0.12);">Totality</th><th style="padding:5px 8px;font-size:10px;color:#4a6aaa;background:rgba(100,149,237,0.12);">Clear</th></tr></thead><tbody><tr><td style="padding:5px 8px;color:#d0e0ff;font-weight:700;">🏆 Luxor</td><td style="padding:5px 8px;color:#6bcb77;font-weight:700;">6m 23s</td><td style="padding:5px 8px;color:#6bcb77;font-weight:700;">99%</td></tr><tr><td style="padding:5px 8px;color:#b8cef0;">Aswan</td><td style="padding:5px 8px;color:#6bcb77;">6m 00s</td><td style="padding:5px 8px;color:#6bcb77;">99%</td></tr><tr><td style="padding:5px 8px;color:#b8cef0;">Cairo</td><td style="padding:5px 8px;color:#a8c0f0;">5m 30s</td><td style="padding:5px 8px;color:#6bcb77;">93%</td></tr></tbody></table></div></div><div style="flex:1;"><div style="font-size:11px;color:#b19cd9;font-weight:700;margin-bottom:8px;">2028 Eclipse — Jul 22 (Sydney!)</div><div class="rtable"><table style="width:100%;"><thead><tr><th style="padding:5px 8px;font-size:10px;color:#4a6aaa;background:rgba(100,149,237,0.12);">City</th><th style="padding:5px 8px;font-size:10px;color:#4a6aaa;background:rgba(100,149,237,0.12);">Totality</th><th style="padding:5px 8px;font-size:10px;color:#4a6aaa;background:rgba(100,149,237,0.12);">Clear</th></tr></thead><tbody><tr><td style="padding:5px 8px;color:#d0e0ff;font-weight:700;">🏆 Broken Hill</td><td style="padding:5px 8px;color:#6bcb77;font-weight:700;">3m 40s</td><td style="padding:5px 8px;color:#6bcb77;font-weight:700;">82%</td></tr><tr><td style="padding:5px 8px;color:#b8cef0;">Sydney ⭐</td><td style="padding:5px 8px;color:#a8c0f0;">2m 30s</td><td style="padding:5px 8px;color:#ff9500;">55%</td></tr><tr><td style="padding:5px 8px;color:#b8cef0;">Queenstown</td><td style="padding:5px 8px;color:#a8c0f0;">2m 40s</td><td style="padding:5px 8px;color:#ff9500;">55%</td></tr></tbody></table></div></div></div>
+          <a href="#" class="ask-pill" onclick="switchTab('ask',document.querySelector('.tab-btn'));ask('I am in New York, where should I fly to see the 2027 solar eclipse?')">🔭 Ask Genie: “Where should I fly for the 2027 eclipse?”</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <div class="input-area">
+      <div class="input-wrap">
+        <span style="font-size:17px">🔭</span>
+        <div class="kid-toggle"><input type="checkbox" id="kidmode"/><label for="kidmode">🧒 Kid Mode</label></div>
+        <input type="text" id="qinput" placeholder="Ask about asteroids, eclipses, blood moons, missions, eclipse travel..." />
+        <button class="send-btn" onclick="sendQ()">&#9658;</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="rocket-overlay" id="rocketOverlay">
+  <div class="rocket-ship" id="rocketShip">🚀</div>
+  <div class="exhaust" id="rocketExhaust"></div>
+  <div class="exhaust exhaust-wide"></div>
+  <div class="launch-text">LAUNCH!</div>
+</div>
+<div class="proto-badge">DESIGN PROTOTYPE · Live app uses real NASA data via Genie Agent on Databricks</div>
+
+<script>
+// === Animated Galaxy Background ===
+const c=document.getElementById('starfield'),ctx=c.getContext('2d');
+let W,H,frame=0,stars=[],shooters=[],nextShoot=150;
+const CONS=[
+  {pts:[[.42,.18],[.52,.16],[.48,.23],[.54,.23],[.60,.23],[.46,.30],[.58,.31]],lines:[[0,1],[0,2],[1,3],[2,3],[3,4],[2,5],[4,6],[5,6]]},
+  {pts:[[.10,.07],[.14,.06],[.18,.08],[.20,.12],[.17,.15],[.13,.16],[.09,.13]],lines:[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,0]]},
+  {pts:[[.72,.04],[.77,.07],[.82,.04],[.87,.08],[.92,.05]],lines:[[0,1],[1,2],[2,3],[3,4]]},
+  {pts:[[.68,.78],[.72,.74],[.76,.78],[.72,.82]],lines:[[0,2],[1,3]]}
+];
+function resize(){W=c.width=innerWidth;H=c.height=innerHeight;buildStars();}
+function buildStars(){stars=[];
+  for(let i=0;i<500;i++)stars.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*.7+.1,b:Math.random()*.4+.15,s:Math.random()*.015+.004,o:Math.random()*6.28});
+  const t=['255,255,255','255,235,190','190,215,255','255,210,210'];
+  for(let i=0;i<160;i++)stars.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.4+.7,b:Math.random()*.5+.25,s:Math.random()*.025+.008,o:Math.random()*6.28,c:t[~~(Math.random()*4)]});
+  for(let i=0;i<28;i++)stars.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*2.2+1.4,b:Math.random()*.3+.65,s:Math.random()*.035+.012,o:Math.random()*6.28,bright:1});
+}
+function drawNebula(){
+  [[.14,.30,.40,'110,50,190'],[.85,.72,.42,'25,90,200'],[.80,.12,.30,'180,50,110'],[.04,.62,.28,'0,170,170'],[.50,.85,.35,'80,40,160']].forEach(([cx,cy,rx,rgb])=>{
+    const g=ctx.createRadialGradient(cx*W,cy*H,0,cx*W,cy*H,rx*W);
+    g.addColorStop(0,`rgba(${rgb},.20)`);g.addColorStop(.5,`rgba(${rgb},.07)`);g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  });
+  const mw=ctx.createLinearGradient(0,H*.25,W,H*.75);
+  mw.addColorStop(0,'rgba(0,0,0,0)');mw.addColorStop(.3,'rgba(210,215,255,.03)');mw.addColorStop(.5,'rgba(230,235,255,.055)');mw.addColorStop(.7,'rgba(210,215,255,.03)');mw.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=mw;ctx.fillRect(0,0,W,H);
+}
+function drawCons(){
+  CONS.forEach(con=>{
+    const pts=con.pts.map(([x,y])=>[x*W,y*H]);
+    ctx.strokeStyle='rgba(150,180,255,.14)';ctx.lineWidth=.8;ctx.setLineDash([4,6]);ctx.beginPath();
+    con.lines.forEach(([a,b])=>{ctx.moveTo(...pts[a]);ctx.lineTo(...pts[b]);});ctx.stroke();ctx.setLineDash([]);
+    pts.forEach(([px,py])=>{
+      const g=ctx.createRadialGradient(px,py,0,px,py,6);g.addColorStop(0,'rgba(200,220,255,.6)');g.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=g;ctx.beginPath();ctx.arc(px,py,6,0,6.28);ctx.fill();
+      ctx.fillStyle='rgba(230,240,255,.9)';ctx.beginPath();ctx.arc(px,py,1.5,0,6.28);ctx.fill();
+    });
+  });
+}
+function drawStars(){
+  stars.forEach(s=>{
+    const op=Math.max(.04,s.b+Math.sin(frame*s.s+s.o)*.18);
+    if(s.bright){
+      ctx.strokeStyle=`rgba(220,235,255,${op*.25})`;ctx.lineWidth=.5;ctx.beginPath();
+      ctx.moveTo(s.x-s.r*8,s.y);ctx.lineTo(s.x+s.r*8,s.y);ctx.moveTo(s.x,s.y-s.r*8);ctx.lineTo(s.x,s.y+s.r*8);ctx.stroke();
+      const g=ctx.createRadialGradient(s.x,s.y,0,s.x,s.y,s.r*6);g.addColorStop(0,`rgba(200,220,255,${op*.5})`);g.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=g;ctx.beginPath();ctx.arc(s.x,s.y,s.r*6,0,6.28);ctx.fill();
+    }
+    ctx.fillStyle=`rgba(${s.c||'255,255,255'},${op})`;ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,6.28);ctx.fill();
+  });
+}
+function drawShooters(){
+  for(let i=shooters.length-1;i>=0;i--){
+    const s=shooters[i];s.x+=s.vx;s.y+=s.vy;s.life++;
+    const op=Math.max(0,1-s.life/s.ml);if(op<=0){shooters.splice(i,1);continue;}
+    const a=Math.atan2(s.vy,s.vx),tx=s.x-Math.cos(a)*s.len,ty=s.y-Math.sin(a)*s.len;
+    const g=ctx.createLinearGradient(tx,ty,s.x,s.y);g.addColorStop(0,'rgba(255,255,255,0)');g.addColorStop(.7,`rgba(180,220,255,${op*.5})`);g.addColorStop(1,`rgba(255,255,255,${op})`);
+    ctx.strokeStyle=g;ctx.lineWidth=1.8;ctx.beginPath();ctx.moveTo(tx,ty);ctx.lineTo(s.x,s.y);ctx.stroke();
+    ctx.fillStyle=`rgba(255,255,255,${op})`;ctx.beginPath();ctx.arc(s.x,s.y,2,0,6.28);ctx.fill();
+  }
+}
+function loop(){
+  frame++;ctx.clearRect(0,0,W,H);drawNebula();drawCons();drawStars();
+  if(frame>=nextShoot){const a=(.35+Math.random()*.4),sp=9+Math.random()*7;shooters.push({x:Math.random()*W*.7,y:Math.random()*H*.35,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,len:100+Math.random()*120,life:0,ml:55+Math.random()*35});nextShoot=frame+280+Math.random()*400;}
+  drawShooters();requestAnimationFrame(loop);
+}
+resize();addEventListener('resize',resize);loop();
+
+// === Tab switching ===
+function switchTab(name,el){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  if(el)el.classList.add('active');else document.querySelectorAll('.tab-btn')[0].classList.add('active');
+  document.getElementById('panel-'+name).classList.add('active');
+  document.querySelector('.input-area').style.display=(name==='sky'||name==='mission')?'none':'';
+}
+
+// === Chat simulation ===
+
+// ═══════════════════════════════════════════════════════
+//  CosmosGenie — Genie Reasoning Chain Simulation
+// ═══════════════════════════════════════════════════════
+const QA = [
+  { trigger: ['asteroid','asteroids','dangerous','hazardous','approaching','this week','7 days'],
+    steps: [
+      { icon:'🔍', label:'Identifying relevant tables',  detail:'<code>cosmos.space.neo_close_approaches</code>',        ms:350  },
+      { icon:'⚙️', label:'Generating SQL',               sql:'SELECT name, approach_date,\n  ROUND(miss_distance_au,4) AS dist_au,\n  ROUND(miss_distance_km/384400,2) AS dist_ld,\n  is_potentially_hazardous\nFROM cosmos.space.neo_close_approaches\nWHERE approach_date\n  BETWEEN CURRENT_DATE AND CURRENT_DATE+7\nORDER BY approach_date',  ms:900  },
+      { icon:'⚡', label:'Executing query',              detail:'<b>3 rows</b> returned in 0.18 s',                     ms:1600 },
+      { icon:'✨', label:'Composing answer',             detail:'',                                                    ms:2100 },
+    ],
+    answer: '<strong>3 close approaches</strong> in the next 7 days. One is Potentially Hazardous:<div class="rtable"><table><tr><th>Asteroid</th><th>Date</th><th>Miss Dist</th><th>Lunar Dist</th><th>PHA</th></tr><tr><td><strong>2024 YR4</strong></td><td>Sep 22</td><td>0.044 AU</td><td>17× Moon</td><td><span class="pha">⚠ Yes</span></td></tr><tr><td>2023 XR2</td><td>Aug 29</td><td>0.09 AU</td><td>35× Moon</td><td><span class="ok">✓ No</span></td></tr><tr><td>2024 TG10</td><td>Sep 3</td><td>0.06 AU</td><td>23× Moon</td><td><span class="ok">✓ No</span></td></tr></table></div><div class="insight">🟡 <strong>2024 YR4</strong> is flagged PHA but at 17× the Moon's distance — zero impact risk. Great for backyard telescopes on Sep 22!</div>'
+  },
+  { trigger: ['blood moon','lunar eclipse','blood'],
+    steps: [
+      { icon:'🔍', label:'Identifying relevant tables',  detail:'<code>cosmos.space.eclipse_catalog</code>',           ms:350  },
+      { icon:'⚙️', label:'Generating SQL',               sql:"SELECT eclipse_date, duration_minutes,\n  path_description, max_magnitude\nFROM cosmos.space.eclipse_catalog\nWHERE body = 'Lunar'\n  AND eclipse_type = 'Total'\n  AND eclipse_date >= CURRENT_DATE\nORDER BY eclipse_date\nLIMIT 3",  ms:900  },
+      { icon:'⚡', label:'Executing query',              detail:'<b>3 rows</b> returned in 0.12 s',                    ms:1550 },
+      { icon:'✨', label:'Composing answer',             detail:'',                                                    ms:2050 },
+    ],
+    answer: 'A <strong>Blood Moon</strong> = Total Lunar Eclipse where the Moon glows deep red.<div class="rtable"><table><tr><th>Event</th><th>Date</th><th>Duration</th><th>Visible From</th></tr><tr><td>🔴 <b>Next</b></td><td><b>Mar 3, 2026</b></td><td>1h 17m</td><td>Americas, Europe, W Africa</td></tr><tr><td>🔴 Following</td><td>Jun 26, 2029</td><td>1h 41m</td><td>Global</td></tr><tr><td>🔴 After that</td><td>Apr 5, 2032</td><td>1h 02m</td><td>Asia, Pacific</td></tr></table></div><div class="insight">🔴 Next blood moon in <strong>~7 months</strong>. Peak at 11:58 PM EST — perfect for photos!</div>'
+  },
+  { trigger: ['total solar eclipse','solar eclipse','eclipse'],
+    steps: [
+      { icon:'🔍', label:'Identifying relevant tables',  detail:'<code>cosmos.space.eclipse_catalog</code> + <code>cosmos.space.eclipse_paths</code>',  ms:350  },
+      { icon:'⚙️', label:'Generating SQL',               sql:"SELECT ec.eclipse_date, ec.duration_sec,\n  ec.saros_series, ep.city, ep.country,\n  ep.totality_sec, ep.sky_clarity_pct\nFROM cosmos.space.eclipse_catalog ec\nJOIN cosmos.space.eclipse_paths ep\n  ON ec.eclipse_id = ep.eclipse_id\nWHERE ec.eclipse_type = 'Total'\n  AND ec.body = 'Solar'\n  AND ec.eclipse_date >= CURRENT_DATE\nORDER BY ec.eclipse_date, ep.sky_clarity_pct DESC\nLIMIT 8",  ms:950  },
+      { icon:'⚡', label:'Executing query',              detail:'<b>8 rows</b> returned in 0.21 s (JOIN across 2 tables)',  ms:1650 },
+      { icon:'✨', label:'Composing answer',             detail:'',                                                    ms:2150 },
+    ],
+    answer: '<strong>Next Total Solar Eclipse: August 2, 2027</strong> — the longest of the 21st century! 🌑<div class="rtable"><table><tr><th>City</th><th>Totality</th><th>Clear Sky</th></tr><tr><td>🏆 <b>Luxor, Egypt</b></td><td><b>6m 23s</b></td><td><b>99%</b></td></tr><tr><td>Aswan, Egypt</td><td>6m 00s</td><td>99%</td></tr><tr><td>Cairo, Egypt</td><td>5m 30s</td><td>93%</td></tr><tr><td>Sfax, Tunisia</td><td>5m 00s</td><td>86%</td></tr></table></div><div class="insight">✈️ <strong>Luxor</strong> = max totality + near-certain clear skies. The path also crosses Marrakech and Riyadh.</div>'
+  },
+  { trigger: ['eclipse travel','fly','new york','london','i am in','best city','best place','where should'],
+    steps: [
+      { icon:'🔍', label:'Identifying relevant tables',  detail:'<code>cosmos.space.eclipse_paths</code> ranked by <code>sky_clarity_pct DESC</code>',  ms:350  },
+      { icon:'⚙️', label:'Generating SQL',               sql:"SELECT city, country, totality_sec,\n  dist_from_centerline_km,\n  sky_clarity_pct\nFROM cosmos.space.eclipse_paths\nWHERE eclipse_id = 'SE2027Aug02'\nORDER BY sky_clarity_pct DESC,\n         totality_sec DESC\nLIMIT 5",  ms:900  },
+      { icon:'⚡', label:'Executing query',              detail:'<b>5 rows</b> returned in 0.09 s',                   ms:1550 },
+      { icon:'✨', label:'Composing answer',             detail:'',                                                    ms:2050 },
+    ],
+    answer: 'For the <strong>2027 eclipse</strong> from New York, I recommend flying to <strong>Luxor, Egypt</strong> 🏆<div class="rtable"><table><tr><th>City</th><th>Totality</th><th>Clear Sky</th><th>From NYC</th></tr><tr><td>🏆 <b>Luxor, Egypt</b></td><td><b>6m 23s</b></td><td><b>99%</b></td><td>~11h direct</td></tr><tr><td>Aswan, Egypt</td><td>6m 00s</td><td>99%</td><td>~12h</td></tr><tr><td>Cairo, Egypt</td><td>5m 30s</td><td>93%</td><td>~10h direct</td></tr></table></div><div class="insight">✈️ <strong>Luxor</strong> wins on both duration AND sky clarity — 99% clear skies in August (desert dry season). Direct EgyptAir NYC→Cairo, then 1h flight to Luxor.</div>'
+  },
+  { trigger: ['artemis','moon mission','crewed'],
+    steps: [
+      { icon:'🔍', label:'Identifying relevant tables',  detail:'<code>cosmos.space.mission_launches</code> filtered <code>is_moon_mission=true</code>',  ms:350  },
+      { icon:'⚙️', label:'Generating SQL',               sql:"SELECT mission_name, launch_date,\n  agency, rocket, launch_status,\n  is_crewed, is_moon_mission\nFROM cosmos.space.mission_launches\nWHERE is_moon_mission = true\n  AND launch_date >= CURRENT_DATE\nORDER BY launch_date\nLIMIT 5",  ms:900  },
+      { icon:'⚡', label:'Executing query',              detail:'<b>4 rows</b> returned in 0.14 s',                   ms:1550 },
+      { icon:'✨', label:'Composing answer',             detail:'',                                                    ms:2050 },
+    ],
+    answer: '<strong>4 Moon missions</strong> launching within the next 18 months:<div class="rtable"><table><tr><th>Mission</th><th>Date</th><th>Agency</th><th>Status</th></tr><tr><td><b>Artemis II 🌕👨‍🚀</b></td><td>Sep 2026</td><td>NASA</td><td><span class="ok">Go ✓</span></td></tr><tr><td>Chandrayaan-4 🌕</td><td>Oct 2026</td><td>ISRO</td><td><span class="ok">Go ✓</span></td></tr><tr><td>JAXA MMX 🌕</td><td>Nov 2026</td><td>JAXA</td><td><span style="color:#ff9500;">TBD</span></td></tr><tr><td>Luna-28 🌕</td><td>Jan 2027</td><td>Roscosmos</td><td><span style="color:#ff9500;">TBD</span></td></tr></table></div><div class="insight">🌕 <strong>Artemis II</strong> is Go — first crewed lunar flyby since Apollo 17. 4 astronauts, 10 days, ~8,900 km above the lunar surface.</div>'
+  },
+  { trigger: ['space weather','solar flare','aurora','geomagnetic','storm'],
+    steps: [
+      { icon:'🔍', label:'Identifying relevant tables',  detail:'<code>cosmos.space.space_weather_events</code> (FLR + GST event types)',  ms:350  },
+      { icon:'⚙️', label:'Generating SQL',               sql:"SELECT event_type, class_type,\n  begin_time, peak_time,\n  active_region, kp_index\nFROM cosmos.space.space_weather_events\nWHERE begin_time >= CURRENT_DATE - 14\n  AND event_type IN ('FLR','GST')\nORDER BY begin_time DESC\nLIMIT 6",  ms:900  },
+      { icon:'⚡', label:'Executing query',              detail:'<b>6 rows</b> returned in 0.11 s',                   ms:1550 },
+      { icon:'✨', label:'Composing answer',             detail:'',                                                    ms:2050 },
+    ],
+    answer: 'Active <strong>G2 Geomagnetic Storm</strong> in progress from NOAA AR3800.<div class="rtable"><table><tr><th>Type</th><th>Class</th><th>Time (UTC)</th><th>Kp Index</th></tr><tr><td>🌩 GST</td><td><b>G2</b></td><td>Aug 26 14:30</td><td>6.3</td></tr><tr><td>☀️ FLR</td><td>M5.7</td><td>Aug 26 09:12</td><td>—</td></tr><tr><td>☀️ FLR</td><td>X1.1</td><td>Aug 25 22:47</td><td>—</td></tr></table></div><div class="insight">🌌 G2 = Moderate storm. <strong>Auroras likely above 50° latitude</strong> — northern UK, Canada, Scandinavia tonight!</div>'
+  }
+];
+
+
+// ── Kid Mode answer variants ───────────────────────────────────
+const KID_ANSWERS = {
+  'asteroid': '<strong>3 space rocks are zooming past Earth this week!</strong> \U0001f30d\u2604\ufe0f<div class="rtable"><table><tr><th>Name</th><th>When</th><th>How Close?</th><th>Scary?</th></tr><tr><td><strong>2024 YR4</strong></td><td>Sep 22</td><td>17 Moon-distances away</td><td>\u2705 Nope!</td></tr><tr><td>2023 XR2</td><td>Aug 29</td><td>35 Moon-distances</td><td>\u2705 Nope!</td></tr><tr><td>2024 TG10</td><td>Sep 3</td><td>23 Moon-distances</td><td>\u2705 Nope!</td></tr></table></div><div class="insight">\U0001f4a1 Imagine you threw a ball from your house to a friend 17 blocks away. That\'s how far 2024 YR4 passes! We\'re totally safe. But it\'s super cool that NASA tracks EVERY rock in space \u2014 like a cosmic security camera! \U0001f4f7</div>',
+  'blood moon': 'A <strong>Blood Moon</strong> is when the Earth gets between the Sun and the Moon, like standing between a flashlight and a ball. The Moon doesn\'t disappear \u2014 it turns <span style="color:#ff6b6b;font-weight:700;">spooky red</span>! \U0001f534\U0001f47b<br><br>\u2728 The next one is <strong>March 3, 2026</strong> \u2014 you can watch it with your own eyes (no special glasses needed!). It lasts about 1 hour and 17 minutes. Set your alarm for 11:58 PM!<div class="insight">\U0001f4a1 Why does it turn red? Same reason sunsets are red \u2014 Earth\'s atmosphere bends red light around its edges and paints the Moon!</div>',
+  'solar eclipse': '<strong>A Total Solar Eclipse</strong> is when the Moon passes EXACTLY in front of the Sun and blocks it completely \u2014 daytime turns into nighttime for a few minutes! \U0001f311\u2728<br><br>The next big one: <strong>August 2, 2027</strong> in Egypt. The Moon will cover the Sun for <strong>6 minutes and 23 seconds</strong> \u2014 that\'s the LONGEST eclipse this whole century!<div class="insight">\U0001f4a1 Fun fact: The Moon is 400\u00d7 smaller than the Sun, but it\'s also 400\u00d7 closer to us. That\'s why it looks EXACTLY the same size in the sky \u2014 a perfect cosmic coincidence! \U0001f92f</div>',
+  'eclipse travel': 'For the <strong>2027 eclipse</strong>, the BEST place on Earth is <strong>Luxor, Egypt</strong> \U0001f3c6\U0001f3db\ufe0f<br><br>Here\'s why: you get the LONGEST darkness (6 minutes 23 seconds!) and there\'s a <strong>99% chance</strong> the sky will be totally clear \u2014 because it\'s in the desert where it almost never rains in August!<div class="insight">\U0001f4a1 Imagine standing next to the ancient Egyptian pyramids as day turns to night for 6 whole minutes. Stars come out, animals get confused, and the Sun\'s crown (called the corona) glows around the black Moon. It\'s the coolest thing you can see without a spaceship! \U0001f680</div>',
+  'artemis': '<strong>Artemis II = humans going back to the Moon!</strong> \U0001f315\U0001f468\u200d\U0001f680<br><br>4 astronauts will fly around the Moon in a spaceship called <strong>Orion</strong>. They won\'t land yet (that\'s Artemis III!) but they\'ll fly closer to the Moon than anyone since your grandparents\' parents were alive!<br><br>\U0001f4c5 Launch: <strong>September 2026</strong><br>\U0001f680 Status: <span style="color:#6bcb77;font-weight:700;">GO for launch!</span><div class="insight">\U0001f4a1 The last time humans went this close to the Moon was 1972. That\'s over 50 years ago! These astronauts will take the coolest selfie in history \u2014 Earth in the background, Moon out the window. \U0001f4f8</div>',
+  'space weather': 'The Sun just <strong>sneezed</strong> really hard! \u2600\ufe0f\U0001f927<br><br>It shot a blast of energy toward Earth called a <strong>geomagnetic storm</strong> (level G2 = Medium). The good news? It can\'t hurt us! The Earth\'s invisible force field (called the magnetosphere) protects us like a superhero shield. \U0001f6e1\ufe0f<br><br>The COOL part? This makes the sky glow with amazing colours called <strong>Northern Lights (Auroras)</strong> \u2014 like nature\'s own light show!<div class="insight">\U0001f4a1 If you live in Canada, UK, or Scandinavia, look north tonight \u2014 you might see green and purple curtains dancing in the sky!</div>'
+};
+
+function matchQA(q) {
+  const ql = q.toLowerCase();
+  return QA.find(qa => qa.trigger.some(t => ql.includes(t))) || null;
+}
+
+function ask(q){ document.getElementById('qinput').value=q; sendQ(); }
+
+function sendQ() {
+  const inp = document.getElementById('qinput'), q = inp.value.trim();
+  if(!q) return;
+  inp.value = '';
+  switchTab('ask', document.querySelector('.tab-btn'));
+  addMsg(q, 'user');
+  const match = matchQA(q);
+  checkLaunchEgg(q);
+  showReasoning(match, q);
+}
+
+function addMsg(t, role) {
+  const d = document.createElement('div');
+  d.className = 'msg ' + role;
+  d.innerHTML = `<div class="avatar ${role==='user'?'usr':'bot'}">${role==='user'?'\U0001f466':'\U0001f52d'}</div><div class="bubble ${role==='user'?'user':''}">${t}</div>`;
+  document.getElementById('msgs').appendChild(d);
+  scroll();
+}
+
+function showReasoning(match, q) {
+  // Create the bot bubble with reasoning container
+  const id = 'r' + Date.now();
+  const d = document.createElement('div');
+  d.className = 'msg';
+  d.id = id;
+  d.innerHTML = `<div class="avatar bot">\U0001f52d</div><div class="bubble"><div class="reasoning" id="rs${id}"></div></div>`;
+  document.getElementById('msgs').appendChild(d);
+  scroll();
+
+  const steps = match ? match.steps : [
+    { icon:'\U0001f50d', label:'Identifying relevant tables', detail:'<code>cosmos.space.*</code>', ms:350 },
+    { icon:'\u2699\ufe0f', label:'Generating SQL', sql:`SELECT * FROM cosmos.space.*\nWHERE -- filtering on: ${q.slice(0,40)}...\nORDER BY date DESC LIMIT 10`, ms:900 },
+    { icon:'\u26a1', label:'Executing query', detail:'<b>Results</b> returned', ms:1550 },
+    { icon:'\u2728', label:'Composing answer', detail:'', ms:2050 }
+  ];
+
+  const rs = document.getElementById('rs' + id);
+
+  steps.forEach((step, i) => {
+    setTimeout(() => {
+      const sid = `step_${id}_${i}`;
+      const isLast = (i === steps.length - 1);
+      const sqlId = `sql_${id}_${i}`;
+
+      // Mark previous step as done
+      if(i > 0) {
+        const prev = document.getElementById(`step_${id}_${i-1}`);
+        if(prev) {
+          const ico = prev.querySelector('.r-icon');
+          if(ico){ ico.classList.remove('active'); ico.classList.add('done'); ico.textContent = '\u2713'; }
+          const sp = prev.querySelector('.rspin');
+          if(sp) sp.classList.remove('rspin');
+        }
+      }
+
+      const sqlHtml = step.sql
+        ? `<span class="r-sql-toggle" onclick="const b=document.getElementById('${sqlId}');b.style.display=b.style.display==='block'?'none':'block'">&lt;/&gt; View SQL</span>
+           <div class="r-sql-block" id="${sqlId}">${step.sql}</div>`
+        : '';
+
+      const detailHtml = step.detail ? ` — ${step.detail}` : '';
+
+      const el = document.createElement('div');
+      el.id = sid;
+      el.className = 'r-step';
+      el.innerHTML = `<div class="r-icon active"><span class="rspin">\u22ef</span></div>
+        <div class="r-text"><b>${step.label}</b>${detailHtml}${sqlHtml}</div>`;
+      rs.appendChild(el);
+      requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('show')));
+
+      // Final step: mark done then append answer
+      if(isLast) {
+        setTimeout(() => {
+          const finalStep = document.getElementById(sid);
+          if(finalStep){
+            const ico = finalStep.querySelector('.r-icon');
+            if(ico){ ico.classList.remove('active'); ico.classList.add('done'); ico.textContent='\u2713'; }
+            const sp = finalStep.querySelector('.rspin'); if(sp) sp.classList.remove('rspin');
+          }
+          const divider = document.createElement('hr');
+          divider.className = 'r-divider';
+          rs.appendChild(divider);
+          const ans = document.createElement('div');
+          ans.style.cssText = 'opacity:0;transition:opacity .5s;';
+          ans.innerHTML = (match ? match.answer : `Searching NASA, USNO, and JPL data for: <em>"${q}"</em>...<br><br><span style="color:#6bcb77">\u2713 Found results</span> — in the live app, Genie returns a full data-backed answer here.`);
+          rs.appendChild(ans);
+          requestAnimationFrame(() => requestAnimationFrame(() => ans.style.opacity = '1'));
+          scroll();
+        }, 550);
+      }
+      scroll();
+    }, step.ms);
+  });
+}
+
+function scroll(){ const m=document.getElementById('msgs'); m.scrollTop=m.scrollHeight; }
+document.getElementById('qinput').addEventListener('keydown', e=>{ if(e.key==='Enter') sendQ(); });
+
+// ═══════════════════════════════════════════════════════
+//  Easter Egg: Rocket Launch Animation
+//  Triggers: "launch", "blast off", "3 2 1", "liftoff"
+// ═══════════════════════════════════════════════════════
+const LAUNCH_TRIGGERS = ['launch','blast off','3 2 1','3...2...1','liftoff','lift off','blastoff','go for launch'];
+
+function checkLaunchEgg(q) {
+  const ql = q.toLowerCase();
+  if (LAUNCH_TRIGGERS.some(t => ql.includes(t))) {
+    setTimeout(launchRocket, 600);
+  }
+}
+
+function launchRocket() {
+  const overlay = document.getElementById('rocketOverlay');
+  overlay.classList.add('active');
+  
+  // Screen flash
+  const flash = document.createElement('div');
+  flash.className = 'screen-flash';
+  document.body.appendChild(flash);
+  setTimeout(() => flash.remove(), 500);
+  
+  // Screen shake
+  document.body.classList.add('shaking');
+  setTimeout(() => document.body.classList.remove('shaking'), 500);
+  
+  // Spawn sparks/particles
+  for (let i = 0; i < 24; i++) {
+    setTimeout(() => {
+      const spark = document.createElement('div');
+      spark.className = 'spark';
+      spark.style.left = (48 + Math.random()*4) + '%';
+      spark.style.bottom = (5 + Math.random()*15) + '%';
+      spark.style.setProperty('--sx', (Math.random()*120-60) + 'px');
+      spark.style.setProperty('--sy', (Math.random()*80+20) + 'px');
+      spark.style.background = ['#ff9500','#ff6b6b','#ffcc00','#fff'][~~(Math.random()*4)];
+      spark.style.width = spark.style.height = (2+Math.random()*4) + 'px';
+      overlay.appendChild(spark);
+      setTimeout(() => spark.remove(), 1500);
+    }, i * 80);
+  }
+  
+  // Clean up after animation completes
+  setTimeout(() => {
+    overlay.classList.remove('active');
+  }, 3200);
+}
+
+</script>
+</body>
+</html>
