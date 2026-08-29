@@ -53,16 +53,45 @@ Spaceflight News ─────┘                    │                │
 
 ```
 CosmosGenie/
-├── cosmosgenie/          # Databricks App
-│   ├── app.py            # Gradio UI + Genie integration
-│   ├── app.yaml          # App config + env vars
-│   └── requirements.txt
+│
+├── cosmosgenie/                          ▐ Databricks App (Gradio)
+│   ├── app.py                            3-tab UI: Ask · Tonight's Sky · Mission Control
+│   ├── app.yaml                          Env vars: GENIE_SPACE_ID, DASHBOARD_URL
+│   └── requirements.txt                  gradio, databricks-sdk, requests
+│
 ├── notebooks/
-│   ├── setup/            # Table creation SQL
-│   └── ingestion/        # 8 data ingestion notebooks
+│   ├── setup/
+│   │   └── 01_create_tables.sql          CREATE TABLE for all 8 Delta tables
+│   │
+│   ├── ingestion/                        ▐ Standalone notebooks (run via Lakeflow Job)
+│   │   ├── ingest_asteroids.py           NASA NeoWs → MERGE upsert, daily
+│   │   ├── ingest_space_weather.py       NASA DONKI FLR+GST → MERGE, daily
+│   │   ├── ingest_moon_phases.py         USNO API → MERGE, weekly
+│   │   ├── ingest_mission_launches.py    The Space Devs → MERGE upsert, daily
+│   │   ├── ingest_space_news.py          Spaceflight News → MERGE, every 6h
+│   │   ├── load_eclipse_catalog.py       NASA 5-Millennium → one-time static load
+│   │   ├── load_eclipse_paths.py         City-level totality data → one-time load
+│   │   └── load_planetary_events.py      Conjunctions & showers → one-time load
+│   │
+│   └── pipelines/                        ▐ Lakeflow Spark Declarative Pipeline (SDP)
+│       ├── bronze/
+│       │   ├── neo_close_approaches.py   Raw API pull → materialized view
+│       │   └── space_weather_events.py   Raw API pull → materialized view
+│       ├── silver/
+│       │   ├── neo_close_approaches.py   Cleaned + typed + DQ expectations
+│       │   └── space_weather_events.py   Cleaned + typed + DQ expectations
+│       └── README.md                     Pipeline setup & expectation reference
+│
 └── assets/
-    └── cosmosgenie_demo.html   # Interactive design prototype
+    └── cosmosgenie_demo.html             Interactive prototype (animated galaxy,
+                                              3 tabs, 6 QA pairs, Kid Mode toggle,
+                                              rocket launch Easter egg — 61K)
 ```
+
+> **Two ingestion paths by design:** The `ingestion/` notebooks are standalone scripts
+> scheduled via a Lakeflow Job. The `pipelines/` folder is a Spark Declarative Pipeline
+> (bronze → silver) with built-in data quality expectations — demonstrating both
+> Databricks features for the hackathon submission.
 
 ## API Keys
 
