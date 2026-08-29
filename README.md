@@ -57,11 +57,36 @@ CosmosGenie/
     └── cosmosgenie_demo.html   # Interactive design prototype
 ```
 
+## API Keys
+
+### NASA API (required for asteroids + space weather)
+
+1. Go to **[api.nasa.gov](https://api.nasa.gov)**
+2. Fill in your first name, last name, and email — click **Signup**
+3. Your key arrives by email within seconds. It looks like: `aB3dEfGhIjKlMnOpQrStUvWxYz1234567890`
+4. Free forever — 1,000 requests/day (more than enough for daily refresh)
+
+> **No key yet?** Use `DEMO_KEY` for quick testing (30 req/hour).
+> Substitute it anywhere you see `YOUR_KEY_HERE` in the notebooks.
+
+### Other APIs — no key needed
+
+| API | Used for | Limit |
+|---|---|---|
+| USNO (usno.navy.mil) | Moon phases | No limit |
+| The Space Devs (ll.thespacedevs.com) | Mission launches | 15 req/hr |
+| Spaceflight News API (spaceflightnewsapi.net) | Breaking news | No limit |
+| NASA Eclipse Catalog | Eclipse data | Static CSV |
+
 ## Setup
 
 1. Run `notebooks/setup/01_create_tables.sql` to create all 8 Delta tables
 2. Run the one-time load notebooks (`load_eclipse_catalog`, `load_eclipse_paths`, `load_planetary_events`)
-3. Store your NASA API key: `databricks secrets put-secret cosmos nasa_api_key --string-value YOUR_KEY`
+3. Register at [api.nasa.gov](https://api.nasa.gov), get your free key, then store it:
+   ```sh
+   databricks secrets create-scope cosmos
+   databricks secrets put-secret cosmos nasa_api_key --string-value YOUR_KEY_HERE
+   ```
 4. Schedule `CosmosGenie Daily Refresh` Lakeflow Job with the ingestion notebooks
 5. Create a Genie Space with all 8 tables — copy the Space ID into `app.yaml`
 6. Deploy the app from the `cosmosgenie/` folder
