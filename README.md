@@ -2,7 +2,7 @@
 
 <p align="center">
   <img
-    src="https://upload.wikimedia.org/wikipedia/commons/3/3f/Webb%27s_First_Deep_Field_%28adjusted%29.jpg"
+    src="https://upload.wikimedia.org/wikipedia/commons/3/3f/Webb%27s_First_Deep_Field_%28adjusted%29.jpg](https://commons.wikimedia.org/wiki/File:The_Milky_Way_and_Scorpius_constellation_(ground-based_image)_(opo0319g).jpg"
     alt="James Webb Space Telescope's First Deep Field, SMACS 0723"
     width="720"
   />
