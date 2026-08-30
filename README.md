@@ -22,34 +22,59 @@ CosmosGenie lets anyone ask natural-language questions about space and get real,
 - *"Where should I fly to see the 2027 solar eclipse?"*
 - *"Is Artemis 2 on schedule?"*
 
-All answers come from live NASA, USNO, and JPL data stored in Databricks Delta tables, queried by Genie Agent.
+Toggle **Kid Mode** and the same questions come back in plain language a 10-year-old can follow.
+All answers come from live NASA, USNO, and JPL data stored in Delta tables, queried by Genie Agent.
+
+---
 
 ## Architecture
 
 ```
-[ Free Public APIs ]              [ Databricks Free Edition ]
-NASA NeoWs  ──────────┐
-NASA DONKI  ──────────┤
-USNO Moon   ──────────┼──► Lakeflow Job ──► Delta Tables (cosmos.space.*)
-JPL / Curated ────────┤                            │
-NASA Eclipse CSV ─────┘                    ┌───────┴────────┐
-The Space Devs ───────┘               Genie Space    AI/BI Dashboard
-Spaceflight News ─────┘                    │                │
-                                      Databricks App (Gradio)
+[ Free Public APIs ]                    [ Databricks Free Edition ]
+
+NASA NeoWs  ─────┐                      Lakeflow SDP Pipeline
+NASA DONKI  ─────┤                      ┌─ bronze/ (raw API pull)
+                 ├──► SDP Pipeline ────►├─ silver/ (clean + DQ expectations)
+                 │                      └─ gold/   (business logic, KPIs)
+USNO Moon   ─────┐
+JPL / Curated ───┤
+NASA Eclipse ────┼──► Lakeflow Job ────► Delta Tables (cosmos.space.*)
+The Space Devs ──┤
+Spaceflight News ┘
+                                              │
+                                    ┌─────────┴──────────┐
+                                 Genie Space         AI/BI Dashboard
+                                    └─────────┬──────────┘
+                                         Gradio App
 ```
 
-## Tables (8 total)
+---
 
-| Table | Source | Refresh |
+## Data Layer: 12 Tables · Full Medallion Architecture
+
+### Silver Tables (source of record)
+
+| Table | Source API | Refresh |
 |---|---|---|
-| `neo_close_approaches` | NASA NeoWs | Daily |
-| `space_weather_events` | NASA DONKI | Daily |
-| `moon_phases` | USNO | Weekly |
-| `eclipse_catalog` | NASA 5-Millennium | Static |
-| `planetary_events` | Curated + JPL | Weekly |
-| `mission_launches` | The Space Devs | Daily |
-| `space_news` | Spaceflight News API | Every 6h |
-| `eclipse_paths` | NASA curated | Static |
+| `neo_close_approaches` | NASA NeoWs (free, needs key) | Daily |
+| `space_weather_events` | NASA DONKI (free, needs key) | Daily |
+| `moon_phases` | USNO (free, no key) | Weekly |
+| `eclipse_catalog` | NASA 5-Millennium (static) | One-time |
+| `eclipse_paths` | NASA curated (static) | One-time |
+| `planetary_events` | Curated + JPL (free, no key) | Weekly |
+| `mission_launches` | The Space Devs (free, no key) | Daily |
+| `space_news` | Spaceflight News API (free, no key) | Every 6h |
+
+### Gold Tables (analytics-ready, Genie-optimised)
+
+| Table | Built from | What it adds |
+|---|---|---|
+| `gold_asteroid_alerts` | `neo_close_approaches` | threat_level (HIGH/WATCH/SAFE), miss_distance_lunar, size_estimate |
+| `gold_space_weather_active` | `space_weather_events` | severity rating, aurora_likelihood per event |
+| `gold_upcoming_events` | eclipses + planetary + launches | Unified 12-month timeline with days_until |
+| `gold_cosmic_kpis` | All silver tables | Single-row KPI bar values — no app-side joins needed |
+
+---
 
 ## Project Structure
 
@@ -63,9 +88,9 @@ CosmosGenie/
 │
 ├── notebooks/
 │   ├── setup/
-│   │   └── 01_create_tables.sql          CREATE TABLE for all 8 Delta tables
+│   │   └── 01_create_tables.sql          CREATE TABLE for all 8 silver Delta tables
 │   │
-│   ├── ingestion/                        ▐ Standalone notebooks (run via Lakeflow Job)
+│   ├── ingestion/                        ▐ Standalone notebooks (Lakeflow Job)
 │   │   ├── ingest_asteroids.py           NASA NeoWs → MERGE upsert, daily
 │   │   ├── ingest_space_weather.py       NASA DONKI FLR+GST → MERGE, daily
 │   │   ├── ingest_moon_phases.py         USNO API → MERGE, weekly
@@ -82,108 +107,179 @@ CosmosGenie/
 │       ├── silver/
 │       │   ├── neo_close_approaches.py   Cleaned + typed + DQ expectations
 │       │   └── space_weather_events.py   Cleaned + typed + DQ expectations
-│       └── README.md                     Pipeline setup & expectation reference
+│       └── gold/
+│           ├── asteroid_alerts.py        Threat levels + lunar distances
+│           ├── space_weather_active.py   Severity + aurora likelihood
+│           ├── upcoming_events.py        Unified 12-month event timeline
+│           └── cosmic_kpis.py            Single-row app KPI summary
 │
 └── assets/
-    └── cosmosgenie_demo.html             Interactive prototype (animated galaxy,
-                                              3 tabs, 6 QA pairs, Kid Mode toggle,
-                                              rocket launch Easter egg — 61K)
+    └── cosmosgenie_demo.html             Interactive prototype (61K)
 ```
 
-> **Two ingestion paths by design:** The `ingestion/` notebooks are standalone scripts
-> scheduled via a Lakeflow Job. The `pipelines/` folder is a Spark Declarative Pipeline
-> (bronze → silver) with built-in data quality expectations — demonstrating both
-> Databricks features for the hackathon submission.
+> **Two ingestion paths by design:** `ingestion/` notebooks are standalone scripts scheduled
+> via Lakeflow Job. `pipelines/` is a Spark Declarative Pipeline with bronze → silver → gold
+> and built-in DQ expectations — demonstrating both Databricks features for the hackathon.
+
+---
 
 ## API Keys
 
 ### NASA API (required for asteroids + space weather)
 
-1. Go to **[api.nasa.gov](https://api.nasa.gov)**
-2. Fill in your first name, last name, and email — click **Signup**
-3. Your key arrives by email within seconds. It looks like: `aB3dEfGhIjKlMnOpQrStUvWxYz1234567890`
-4. Free forever — 1,000 requests/day (more than enough for daily refresh)
+1. Go to **[api.nasa.gov](https://api.nasa.gov)** → fill name + email → click **Signup**
+2. Your key arrives by email within seconds: `aB3dEfGhIjKlMnOpQrStUvWxYz1234567890`
+3. Free forever — 1,000 requests/day
 
 > **No key yet?** Use `DEMO_KEY` for quick testing (30 req/hour).
-> Substitute it anywhere you see `YOUR_KEY_HERE` in the notebooks.
 
 ### Other APIs — no key needed
 
 | API | Used for | Limit |
 |---|---|---|
-| USNO (usno.navy.mil) | Moon phases | No limit |
+| USNO (usno.navy.mil) | Moon phases | Unlimited |
 | The Space Devs (ll.thespacedevs.com) | Mission launches | 15 req/hr |
-| Spaceflight News API (spaceflightnewsapi.net) | Breaking news | No limit |
-| NASA Eclipse Catalog | Eclipse data | Static CSV |
+| Spaceflight News (spaceflightnewsapi.net) | Breaking news | Unlimited |
+| NASA Eclipse Catalog | Eclipse static data | Static file |
 
-## Setup
+---
 
-1. Run `notebooks/setup/01_create_tables.sql` to create all 8 Delta tables
-2. Run the one-time load notebooks (`load_eclipse_catalog`, `load_eclipse_paths`, `load_planetary_events`)
-3. Register at [api.nasa.gov](https://api.nasa.gov), get your free key, then store it:
-   ```sh
-   databricks secrets create-scope cosmos
-   databricks secrets put-secret cosmos nasa_api_key --string-value YOUR_KEY_HERE
-   ```
-4. Schedule `CosmosGenie Daily Refresh` Lakeflow Job with the ingestion notebooks
-5. Create a Genie Space with all 8 tables — copy the Space ID into `app.yaml`
-6. Deploy the app from the `cosmosgenie/` folder
+## Setup Guide
 
+### Step 1 — Create the Delta tables
 
-## Creating the Genie Space
+Open `notebooks/setup/01_create_tables.sql` and run it. This creates the `cosmos` catalog,
+`space` schema, and all 8 silver tables.
 
-The Genie Space is the brain of CosmosGenie — it translates natural language questions
-into SQL over your 8 Delta tables.
+### Step 2 — Store your NASA API key
 
-### Steps
+```sh
+databricks secrets create-scope cosmos
+databricks secrets put-secret cosmos nasa_api_key --string-value YOUR_KEY_HERE
+```
 
-1. In your Databricks workspace, go to **left nav → Genie → New Genie Space**
-2. Name it `CosmosGenie`
-3. Under **Tables**, add all 8 tables from `cosmos.space`:
-   - `neo_close_approaches`, `space_weather_events`, `moon_phases`
-   - `eclipse_catalog`, `eclipse_paths`, `planetary_events`
-   - `mission_launches`, `space_news`
+### Step 3 — Load static tables (one-time, no API key needed)
 
-4. Under **Instructions**, paste the following:
+Run these three notebooks in order:
+```
+notebooks/ingestion/load_eclipse_catalog.py
+notebooks/ingestion/load_eclipse_paths.py
+notebooks/ingestion/load_planetary_events.py
+```
+
+### Step 4 — Run the live ingestion notebooks
+
+Run once manually to seed the tables before scheduling:
+```
+notebooks/ingestion/ingest_asteroids.py
+notebooks/ingestion/ingest_space_weather.py
+notebooks/ingestion/ingest_moon_phases.py
+notebooks/ingestion/ingest_mission_launches.py
+notebooks/ingestion/ingest_space_news.py
+```
+
+### Step 5 — Create the Lakeflow SDP Pipeline
+
+This builds the bronze → silver → gold medallion for asteroids and space weather.
+
+1. Left nav → **Pipelines** → **Create pipeline** → **ETL pipeline**
+2. Set:
+
+| Field | Value |
+|---|---|
+| Pipeline name | `CosmosGenie Daily Ingest` |
+| Serverless | On |
+| Source code | `notebooks/pipelines/` (all subfolders: bronze/, silver/, gold/) |
+| Target catalog | `cosmos` |
+| Target schema | `space` |
+
+3. Under **Configuration**, add:
+
+| Key | Value |
+|---|---|
+| `nasa_api_key` | `{{secrets/cosmos/nasa_api_key}}` |
+
+4. Click **Create** → click **Start** for first run
+
+The pipeline DAG will show: bronze → silver → gold with DQ expectations on each silver table.
+
+### Step 6 — Schedule automated refreshes (Lakeflow Jobs)
+
+Create two jobs:
+
+**Job 1 — CosmosGenie Daily Refresh** (runs at 06:00 UTC daily)
+
+| Task | Notebook | Schedule |
+|---|---|---|
+| asteroids | `ingest_asteroids.py` | Daily 06:00 UTC |
+| space_weather | `ingest_space_weather.py` | Daily 06:00 UTC |
+| moon_phases | `ingest_moon_phases.py` | Daily 06:00 UTC |
+| mission_launches | `ingest_mission_launches.py` | Daily 06:00 UTC |
+
+Then trigger the SDP pipeline on completion of the above job.
+
+**Job 2 — CosmosGenie News Refresh** (every 6 hours)
+
+| Task | Notebook | Schedule |
+|---|---|---|
+| space_news | `ingest_space_news.py` | Every 6h |
+
+To create a job: Left nav → **Jobs** → **Create job** → add tasks → set schedule.
+
+### Step 7 — Create the Genie Space
+
+1. Left nav → **Genie** → **New Genie Space**
+2. Name: `CosmosGenie`
+3. Add all 12 tables from `cosmos.space` (8 silver + 4 gold)
+4. Paste these instructions:
 
 ```
-- Asteroid distances: always contextualize in lunar distances (1 LD = 0.00257 AU)
+- Prefer gold_* tables for user-facing questions — threat levels, severity, and
+  timelines are pre-computed. Use silver tables only for detailed historical queries.
+- gold_cosmic_kpis has exactly one row — use it for count/summary questions
+- gold_upcoming_events joins eclipses + planetary + launches — use for "what's
+  happening in space this month" queries
+- Asteroid distances: always express in lunar distances (1 LD = 0.00257 AU)
 - Blood Moon = eclipse_type = 'Total' AND body = 'Lunar'
-- Potentially hazardous asteroids = is_potentially_hazardous = true
-- Geomagnetic storm scale: G1 (minor) to G5 (extreme); class_type stores the G-scale
-- is_crewed = true means humans are aboard; is_moon_mission = true means it targets the Moon
-- For eclipse travel queries: rank cities by sky_clarity_pct DESC, mention totality duration
-- Use plain, friendly language; avoid jargon unless asked
-- Never recommend travel to a location without mentioning the sky_clarity_pct risk
+- Potentially hazardous = is_potentially_hazardous = true
+- Geomagnetic storm scale: G1 (minor) → G5 (extreme); stored in class_type
+- is_crewed = true means humans aboard; is_moon_mission = true targets the Moon
+- Eclipse travel: rank cities by sky_clarity_pct DESC, always mention totality duration
+- Use plain, friendly language. Never recommend travel without stating sky_clarity_pct.
 ```
 
-5. Add a few **sample questions** to help Genie learn your intent:
+5. Add sample questions:
    - "Are any asteroids approaching Earth in the next 7 days?"
    - "When is the next blood moon and how long does totality last?"
    - "Where should I fly to see the 2027 total solar eclipse?"
    - "What solar flares occurred this month and how strong were they?"
    - "Is Artemis 2 still on schedule for launch?"
-   - "What planetary conjunctions are coming up in the next 6 months?"
+   - "What meteor showers are coming up?"
    - "Which city has the best chance of clear skies for the 2028 eclipse?"
-   - "How many potentially hazardous asteroids are currently being tracked?"
+   - "How many potentially hazardous asteroids are being tracked right now?"
 
-6. Click **Save**, then copy the **Space ID** from the browser URL
-   - Format: `01xxxxxxxxxxxxxxxx` (e.g. `01ef8a3c2d1b4f9e`)
-
-7. Paste it into `cosmosgenie/app.yaml`:
+6. Click **Save** → copy the **Space ID** from the URL (`01xxxxxxxxxxxxxxxx`)
+7. Paste into `cosmosgenie/app.yaml`:
    ```yaml
    env:
      - name: GENIE_SPACE_ID
-       value: "YOUR_SPACE_ID_HERE"   # ← paste here
+       value: "YOUR_SPACE_ID_HERE"
    ```
 
-> **Tip:** Test the space directly in the Genie UI before deploying the app.
-> Ask it a few questions from the list above to confirm it's querying the right tables.
+### Step 8 — Deploy the app
+
+```sh
+cd cosmosgenie/
+databricks apps deploy
+```
+
+---
 
 ## Personal Story
 
 Built for my son who asked me one evening if any asteroids were going to hit Earth.
-Now he can ask the app himself — and get a real, data-backed answer in plain English. 🚀
+Now he can ask the app himself — and get a real, data-backed answer in plain English.
+Toggle Kid Mode and the same answers come back in language a 10-year-old can follow. 🚀
 
 ---
 *Built with Databricks Free Edition · NASA APIs · Genie Agent · Gradio*
