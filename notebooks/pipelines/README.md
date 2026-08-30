@@ -1,38 +1,55 @@
 # CosmosGenie — Lakeflow Spark Declarative Pipeline
 
-Bronze → Silver ingestion pipeline for NASA asteroid and space weather data.
+Full **bronze → silver → gold** medallion architecture.
 
-## Structure
+## Pipeline DAG
 
 ```
-bronze/
-  neo_close_approaches.py   — Raw NASA NeoWs API pull (last 7 days)
-  space_weather_events.py   — Raw NASA DONKI FLR + GST (last 30 days)
-silver/
-  neo_close_approaches.py   — Cleaned + typed + DQ expectations
-  space_weather_events.py   — Cleaned + typed + DQ expectations
+NASA NeoWs API ──→ bronze_neo_close_approaches ──→ neo_close_approaches ──→ gold_asteroid_alerts ─┐
+                                                                                                   ├─→ gold_upcoming_events
+NASA DONKI API ──→ bronze_space_weather_events ──→ space_weather_events ──→ gold_space_weather_active│
+                                                                                                   │
+eclipse_catalog (static) ──────────────────────────────────────────────────────────────────────────┤
+planetary_events (static) ─────────────────────────────────────────────────────────────────────────┤
+mission_launches (API) ────────────────────────────────────────────────────────────────────────────┘
+                                                                                                   
+neo_close_approaches + eclipse_catalog + planetary_events + moon_phases + space_weather_events
+    └──→ gold_cosmic_kpis (single-row KPI summary)
 ```
 
-## Data Quality Expectations (visible in pipeline UI)
+## Layer Details
 
-| Table | Expectation | Constraint |
+### Bronze (Raw API Pull)
+| File | Table | Source |
 |---|---|---|
-| neo_close_approaches | valid_distance | miss_distance_au > 0 |
-| neo_close_approaches | valid_approach_date | approach_date IS NOT NULL |
-| space_weather_events | valid_event_type | event_type IN ('FLR', 'GST') |
-| space_weather_events | valid_begin_time | begin_time IS NOT NULL |
+| `bronze/neo_close_approaches.py` | `bronze_neo_close_approaches` | NASA NeoWs — last 7 days of asteroid approaches |
+| `bronze/space_weather_events.py` | `bronze_space_weather_events` | NASA DONKI — solar flares (FLR) + geomagnetic storms (GST) |
 
-## Pipeline Settings
+### Silver (Cleaned + Typed + DQ Expectations)
+| File | Table | Expectations |
+|---|---|---|
+| `silver/neo_close_approaches.py` | `neo_close_approaches` | `valid_distance` (miss_distance_au > 0), `valid_approach_date` (NOT NULL) |
+| `silver/space_weather_events.py` | `space_weather_events` | `valid_event_type` (IN FLR/GST), `valid_begin_time` (NOT NULL) |
 
-- Catalog: `cosmos` / Schema: `space`
-- Mode: Triggered (scheduled daily at 06:00 UTC via Lakeflow Job)
-- Serverless: true
-- NASA API key: stored as Databricks secret `{{secrets/cosmos/nasa_api_key}}`
+### Gold (Analytics-Ready, Business Logic)
+| File | Table | Purpose |
+|---|---|---|
+| `gold/asteroid_alerts.py` | `gold_asteroid_alerts` | Next 30 days, threat_level (HIGH/WATCH/SAFE), lunar distances |
+| `gold/space_weather_active.py` | `gold_space_weather_active` | Significant events, severity rating, aurora likelihood |
+| `gold/upcoming_events.py` | `gold_upcoming_events` | Unified 12-month timeline: eclipses + planetary + launches |
+| `gold/cosmic_kpis.py` | `gold_cosmic_kpis` | Single-row KPI bar: asteroids this week, days to eclipse, etc. |
 
-## Setup on Free Edition
+## Configuration
 
-1. Create the secret scope: `databricks secrets create-scope cosmos`
-2. Store your NASA key: `databricks secrets put-secret cosmos nasa_api_key --string-value YOUR_KEY`
-3. Create a new SDP pipeline, set catalog=cosmos schema=space
-4. Point libraries at this folder
-5. Run — tables land in `cosmos.space.neo_close_approaches` and `cosmos.space.space_weather_events`
+| Key | Value | Description |
+|---|---|---|
+| `nasa_api_key` | `{{secrets/cosmos/nasa_api_key}}` | NASA API key for NeoWs + DONKI endpoints |
+
+## Setup
+
+```
+Target catalog: cosmos
+Target schema:  space
+Compute:        Serverless
+Mode:           Triggered
+```
