@@ -13,9 +13,9 @@ from pyspark.sql import functions as F
 def space_weather_events():
     return (
         spark.read.table("bronze_space_weather_events")
-        .withColumn("begin_time", F.to_timestamp("begin_time"))
-        .withColumn("peak_time", F.to_timestamp("peak_time"))
-        .withColumn("end_time", F.to_timestamp("end_time"))
+        .withColumn("begin_time", F.to_timestamp("begin_time", "yyyy-MM-dd'T'HH:mm'Z'"))
+        .withColumn("peak_time", F.to_timestamp("peak_time", "yyyy-MM-dd'T'HH:mm'Z'"))
+        .withColumn("end_time", F.to_timestamp("end_time", "yyyy-MM-dd'T'HH:mm'Z'"))
         .withColumn("fetched_at", F.to_timestamp("fetched_at"))
         .select(
             F.col("event_id").cast("string"),

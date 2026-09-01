@@ -1,0 +1,13 @@
+command: ["streamlit", "run", "app.py"]
+
+env:
+  - name: GENIE_SPACE_ID
+    value: "01f1a4d6ed8117f7bd9028b95660f109"
+  - name: DATABRICKS_WAREHOUSE_ID
+    value: "57904131e3e105e8"  # Serverless Starter Warehouse
+  - name: UC_CATALOG
+    value: "cosmos"
+  - name: UC_SCHEMA
+    value: "space"
+  - name: LOG_LEVEL
+    value: "INFO"

@@ -1,8 +1,0 @@
-command:
-  - python
-  - app.py
-env:
-  - name: GENIE_SPACE_ID
-    value: "YOUR_GENIE_SPACE_ID_HERE"
-  - name: DASHBOARD_URL
-    value: "YOUR_PUBLISHED_DASHBOARD_URL_HERE"

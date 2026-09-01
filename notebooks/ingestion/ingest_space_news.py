@@ -1,4 +1,8 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "5"
+# ///
 # MAGIC %md
 # MAGIC # ingest_space_news — Spaceflight News API
 
@@ -45,4 +49,3 @@ spark.sql("""
   WHEN NOT MATCHED THEN INSERT *
 """)
 print(f"Upserted {len(records)} news articles")
-

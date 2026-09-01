@@ -34,7 +34,9 @@ def _fetch_donki(api_key: str) -> list:
         f"?startDate={start_dt:{fmt}}&endDate={end_dt:{fmt}}"
         f"&api_key={api_key}"
     )
-    flares = requests.get(flr_url, timeout=30).json() or []
+    flr_resp = requests.get(flr_url, timeout=30)
+    flr_resp.raise_for_status()
+    flares = flr_resp.json() if flr_resp.text.strip() else []
     for flr in flares:
         records.append({
             "event_id": flr.get("flrID", ""),
@@ -54,7 +56,9 @@ def _fetch_donki(api_key: str) -> list:
         f"?startDate={start_dt:{fmt}}&endDate={end_dt:{fmt}}"
         f"&api_key={api_key}"
     )
-    storms = requests.get(gst_url, timeout=30).json() or []
+    gst_resp = requests.get(gst_url, timeout=30)
+    gst_resp.raise_for_status()
+    storms = gst_resp.json() if gst_resp.text.strip() else []
     for gst in storms:
         kp_vals = [k.get("kpIndex", 0) for k in gst.get("allKpIndex", [])]
         kp = max(kp_vals) if kp_vals else None

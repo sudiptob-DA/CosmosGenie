@@ -14,6 +14,33 @@
 
 Built for the **Databricks Genie-Powered App Challenge 2026** — Track B: Creative Thinking.
 
+## ✨ App Features
+
+### 🌌 Aurora Theme
+Beautiful Arctic northern lights-inspired color palette:
+- **Aurora Green** accents (`#64FFDA`)
+- **Arctic Night** background (`#0B1426`)
+- Deep space aesthetic with Earth backdrop
+
+### 📊 Live KPI Dashboard
+4 real-time metrics from `gold_cosmic_kpis`:
+- Asteroids this week
+- Potentially hazardous count
+- Days to next eclipse
+- Days to next planetary alignment
+
+### 🎯 Interactive Events Timeline
+- **Click-to-explore**: Click any event → instant contextual question
+- Color-coded by type: Oppositions (orange), Meteor Showers (green), Conjunctions (purple)
+- 12-month view with Earth from space background
+- Event details with dates, descriptions, and visibility info
+
+### 💬 Natural Language Q&A
+- Powered by **Databricks Genie Agent**
+- Genie writes the SQL — no pre-built reports
+- Suggested questions for quick exploration
+- Full conversation threading with follow-ups
+
 ## What it does
 
 CosmosGenie lets anyone ask natural-language questions about space and get real, data-backed answers:
@@ -82,10 +109,14 @@ Spaceflight News ┘
 ```
 CosmosGenie/
 │
-├── cosmosgenie/                          ▐ Databricks App (Gradio)
-│   ├── app.py                            3-tab UI: Ask · Tonight's Sky · Mission Control
-│   ├── app.yaml                          Env vars: GENIE_SPACE_ID, DASHBOARD_URL
-│   └── requirements.txt                  gradio, databricks-sdk, requests
+├── cosmosgenieapp/                       ▐ Databricks App (Streamlit)
+│   ├── app.py                            Main app with Aurora theme, interactive timeline, Genie chat
+│   ├── sky_view.py                       Event timeline visualization with click-to-ask
+│   ├── genie_client.py                   Genie Conversations API client
+│   ├── app.yaml                          Env vars: GENIE_SPACE_ID, DATABRICKS_WAREHOUSE_ID, UC_CATALOG, UC_SCHEMA
+│   ├── requirements.txt                  streamlit, databricks-sdk, pandas, plotly
+│   └── .streamlit/
+│       └── config.toml                   Aurora theme config (Arctic Night palette)
 │
 ├── notebooks/
 │   ├── setup/

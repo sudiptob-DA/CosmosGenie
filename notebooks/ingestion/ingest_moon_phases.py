@@ -1,9 +1,14 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "5"
+# ///
 # MAGIC %md
 # MAGIC # ingest_moon_phases — USNO API
 
 # COMMAND ----------
 
+# DBTITLE 1,Ingest moon phases from USNO API
 import requests
 from pyspark.sql import functions as F
 from pyspark.sql.types import *
@@ -18,9 +23,10 @@ for year in [current_year, current_year + 1]:
         timeout=15
     ).json()
     for p in resp.get("phasedata", []):
-        phase_dt = datetime.strptime(p["date"].strip(), "%Y %b %d")
+        # USNO API returns day, month, year separately (not a single date field)
+        phase_date = f"{p['year']}-{p['month']:02d}-{p['day']:02d}"
         records.append({
-            "phase_date":   phase_dt.strftime("%Y-%m-%d"),
+            "phase_date":   phase_date,
             "phase_time":   p.get("time", ""),
             "phase_name":   p.get("phase", ""),
             "year":         year,
@@ -45,4 +51,3 @@ spark.sql("""
   WHEN NOT MATCHED THEN INSERT *
 """)
 print(f"Loaded {len(records)} moon phase records")
-

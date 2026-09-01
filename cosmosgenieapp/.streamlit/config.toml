@@ -1,0 +1,12 @@
+# Aurora-inspired theme: Arctic northern lights aesthetic with deep polar backgrounds
+# and glowing greens, blues, and purples for a cosmic space experience.
+[theme]
+base = "dark"
+primaryColor = "#64FFDA"          # Aurora Green (Primary Accent)
+backgroundColor = "#0B1426"      # Arctic Night (Background)
+secondaryBackgroundColor = "#131F33"  # Secondary Background
+textColor = "#E2E8F0"            # Text Color
+font = "sans serif"
+
+[browser]
+gatherUsageStats = false
